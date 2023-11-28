@@ -1,0 +1,28 @@
+@admin = 'https://api.env/api/admin/v1';
+
+### Login Request
+POST {{admin}}/login HTTP/1.1
+content-type: application/json
+
+{
+    "username": "admin",
+    "password": "123123"
+}
+
+### Login Response
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2FwaS5lbnYvYXBpL2FkbWluL3YxL2xvZ2luIiwiaWF0IjoxNjg0Mzc4MzEwLCJleHAiOjE2ODQzODE5MTAsIm5iZiI6MTY4NDM3ODMxMCwianRpIjoicmdQTDhzMVBxcERFU0JXWSIsInN1YiI6IjEiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.bC42aIRpvr_TjxXX06D-stVoUrtTEqBQjf0-C_a2ltQ",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "expires_at": "2023-05-18 03:51:50"
+}
+
+@access_token = {{login.access_token}}
+
+### Ad
+GET {{admin}}/
+content-type: application/json
+Authorization: Bearer {{access_token}}
