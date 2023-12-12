@@ -46,7 +46,12 @@ return [
             'provider' => 'members',
             'hash' => false,
         ],
-
+        'api' => [
+            // 'driver' => 'token',
+            'driver' => 'jwt',
+            'provider' => 'members',
+            // 'hash' => false,
+        ],
     ],
 
     /*
@@ -76,11 +81,6 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\Member::class,
         ]
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
     ],
 
     /*

@@ -3,6 +3,7 @@
 namespace App\Services;
 use App\Exceptions\InvalidRequestException;
 use Cache;
+use Illuminate\Support\Facades\Hash;
 
 /**
  * 封装验证码服务，原有的 mews/captcha 的api验证码功能，验证码可以重复使用
@@ -30,7 +31,7 @@ class CaptchaService{
         if (!is_numeric($captcha_expire) || $captcha_expire <= 0) {
             $captcha_expire = static::$captcha_expire;
         }
-
+        
         $captchaParams = app('captcha')->create($config, true);
         $captcha_key = $captchaParams['key'];
         // 缓存起来
@@ -48,19 +49,22 @@ class CaptchaService{
      */
     public static function captchaCheckAPI($captcha_code = '', $captcha_key = '', $del_cache = true)
     {
+        // if (!captcha_api_check($captcha_code, $captcha_key)) {
+        //     throw new InvalidRequestException(trans('res.api.captcha.check_err'));
+        // }
 
-        if (!captcha_api_check($captcha_code, $captcha_key)) {
+        if ( !Hash::check( $captcha_key, \Crypt::decrypt($captcha_code) ) ) {
             throw new InvalidRequestException(trans('res.api.captcha.check_err'));
         }
 
-        if (!Cache::get("captcha:" . md5($captcha_key))) {
-            throw new InvalidRequestException(trans('res.api.captcha.out_of_date'));
-        }
+        // if (!Cache::get("captcha:" . md5($captcha_key))) {
+        //     throw new InvalidRequestException(trans('res.api.captcha.out_of_date'));
+        // }
         //var_dump('api_check:'.captcha_api_check($captcha_code, $captcha_key));exit;
         // 验证通过删除缓存
-        if ($del_cache) {
-            Cache::forget("captcha:" . md5($captcha_key));
-        }
+        // if ($del_cache) {
+        //     Cache::forget("captcha:" . md5($captcha_key));
+        // }
 
         return true;
     }

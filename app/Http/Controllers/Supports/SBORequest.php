@@ -21,7 +21,6 @@ trait SBORequest
 
         curl_setopt_array($handle, $setOption);
 
-
         switch (strtoupper($method)) {
             case 'GET':
                 if (!blank($params)) {
@@ -57,7 +56,6 @@ trait SBORequest
         if ($resp) {
             $resp = json_decode($resp);
         }
-
         return $resp;
     }
 }

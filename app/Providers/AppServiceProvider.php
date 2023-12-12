@@ -39,7 +39,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        // custom log
+        $this->app->bind('channellog', 'Core\Providers\Facades\Log\ChannelWriter');
     }
 
     /**

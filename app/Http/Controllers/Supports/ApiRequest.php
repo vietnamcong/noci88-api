@@ -8,7 +8,10 @@ trait ApiRequest
 
     public function requestWithAuth($url, $method = 'POST', $params = [], $header = [])
     {
-        $header[] = 'Authorization: Bearer ' . session()->get(getConfig('noci88_api.login_session_key'))->access_token;
+        $request_header = request()->header();
+        
+        $header[] = 'Authorization: ' . $request_header['authorization'][0]; 
+        // . session()->get(getConfig('noci88_api.login_session_key'))->access_token;
         return $this->request($url, $method, $params, $header);
     }
 
@@ -24,7 +27,7 @@ trait ApiRequest
             CURLOPT_HTTPHEADER => (count($header) > 0) ? $header : array('Except:'),
             CURLOPT_HEADER => false
         ];
-
+        // dd($setOption);
         curl_setopt_array($handle, $setOption);
 
         if (!data_get($params, 'no_lang')) {

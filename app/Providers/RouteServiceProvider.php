@@ -70,10 +70,10 @@ class RouteServiceProvider extends ServiceProvider
 
     protected function mapApiRoutes()
     {
-        Route::middleware('web')
-            ->prefix('/api')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/game.php'));
+        Route::prefix('api')
+            ->middleware('api')
+            ->namespace($this->namespace . '\Api')
+            ->group(base_path('routes/api.php'));
     }
 
     protected function mapClientPCRoutes()

@@ -224,3 +224,30 @@ if (!function_exists('convertDateToArray')) {
 		return $condition;
 	}
 }
+
+function get_language_fields_array()
+{
+    $fields = \systemconfig('vip1_lang_fields');
+
+    $fields = isJson($fields) ? json_decode($fields, 1) : [];
+
+    return $fields;
+}
+
+function isJson($string)
+{
+    json_decode($string);
+    return (json_last_error() == JSON_ERROR_NONE);
+}
+
+function getUrl($url)
+{
+    return \Str::contains($url, '//') ? substr(strstr($url, '//'), 2) : $url;
+}
+
+if (!function_exists('getConst')) {
+    function getConst($key, $default = null)
+    {
+        return config('const.' . $key, $default);
+    }
+}

@@ -46,6 +46,13 @@ class Kernel extends HttpKernel
             // 'throttle:600,1',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
+
+        'api' => [
+            'throttle:500,1',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\CheckForSystemMaintenanceMode::class,
+            \App\Http\Middleware\Language::class,
+        ],
     ];
 
     /**
@@ -70,5 +77,6 @@ class Kernel extends HttpKernel
         'auth.jwt' => \App\Http\Middleware\JWTAuth::class, // JWT middleware
         'cors' => \App\Http\Middleware\Cors::class,
         'language' => \App\Http\Middleware\Language::class,
+        'refresh.member' => \App\Http\Middleware\MemberRefreshToken::class,
     ];
 }

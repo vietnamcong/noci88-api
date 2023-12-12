@@ -1,4 +1,5 @@
 <?php
+// namespace Core\Common;
 
 use Core\Helpers\Url;
 use Illuminate\Support\Facades\Route;
@@ -107,21 +108,19 @@ if (!function_exists('getArea')) {
     function getArea(): string
     {
         $default = getConfig('area.frontend');
-
+        
         if (App::runningInConsole()) {
             return getConfig('area.command');
         }
 
         $requestUri = request()->getRequestUri();
         $uri = explode('/', $requestUri);
-
         if (!array_key_exists(1, $uri)) {
             return $default;
         }
 
         $area = strtok($uri[1], '?');
         $routeAlias = getConfig('route_alias');
-
         return data_get(array_flip($routeAlias), $area, $default);
     }
 }
@@ -496,7 +495,7 @@ if (!function_exists('getGuard')) {
         if (!empty($guards) && in_array($area, $guards)) {
             return Auth::guard($area);
         }
-
+        
         // return default if guard not setting or not found
         return Auth::guard();
     }

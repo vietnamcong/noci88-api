@@ -25,12 +25,16 @@ class Payment extends Base
         'is_open' => ['name' => 'Có mở không', 'type' => 'radio', 'is_show' => true, 'data' => 'platform.is_open', 'style' => 'platform.style_isopen']
     ];
 
-    // const TYPE_THIRDPAY = 'thirdpay';
     const TYPE_BANKPAY = 'company_bankpay';
     const TYPE_USDT = 'company_usdt';
 
     const PREFIX_THIRDPAY = 'online_';
     const PREFIX_COMPANY = 'company_';
+
+    const PAYMENT_EEZIEPAY = 'online_eeziepay';
+    const PAYMENT_USDT = 'company_usdt';
+    const PAYMENT_WECHAT = 'company_wechat';
+    const PAYMENT_BANKPAY = 'company_bankpay';
 
     public $appends = ['type_text'];
 

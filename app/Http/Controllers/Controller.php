@@ -57,10 +57,14 @@ use App\Traits\CurdTrait;
 use App\Traits\SBORequest;
 use Illuminate\Http\Response;
 use App\Handlers\FileUploadHandler;
+use Illuminate\Support\Facades\Validator;
 
 class Controller extends BaseController
 {
 	use AuthorizesRequests, DispatchesJobs, ValidatesRequests, ResponseTrait, CurdTrait, SBORequest;
+
+	/** @var array $viewData */
+    protected $viewData = [];
 
 	protected $guard_name = "member";
 
@@ -99,7 +103,8 @@ class Controller extends BaseController
 	protected $api;
 	protected $memberMoneyLog;
 	protected $drawing;
-
+	protected $model;
+	
 	const LANG_COMMON = 'common';
 	const LANG_CN = 'zh_cn';
 	const LANG_VN = 'vi';
@@ -153,12 +158,14 @@ class Controller extends BaseController
 	public function getMember()
 	{
 		$member = $this->guard()->user();
+		
+        if(!$member) return null;
 
-		if (!$member) return response()->json(['message' => __('message.member.not_found')], Response::HTTP_FOUND);
-		if ($member->status == -1) return response()->json(['message' => __('message.member.status_forbidden')], Response::HTTP_UNPROCESSABLE_ENTITY);
-		if ($member->status == -2) return response()->json(['message' => __('message.member.status_force_off')], Response::HTTP_UNPROCESSABLE_ENTITY);
+        if($member->isDemo() && !$is_allow_demo) throw new InvalidRequestException(trans('res.api.common.demo_not_allowed'));
 
-		return $member;
+        if($member->status == Member::STATUS_FORBIDDEN) throw new InvalidRequestException(trans('res.api.common.member_forbidden'));
+
+        return $member;
 	}
 
 	public function createCaptcha()
@@ -185,4 +192,50 @@ class Controller extends BaseController
 			return response()->json(['messages' => $result['message']], Response::HTTP_UNPROCESSABLE_ENTITY);
 		}
 	}
+
+	public function getLangAttribute($field){
+        return (trans('res.'.$field.'.field') && is_array(trans('res.'.$field.'.field')) ) ? trans('res.'.$field.'.field') : [];
+    }
+
+	public function validateRequest($data, $validateRules, $ruleMessages = [], $attributeName = [])
+    {
+        if(!$attributeName && $this->model){
+            $attributeName = method_exists($this, 'attributeName') ? $this->attributeName($this->model) : [];
+        }
+
+        $validator = Validator::make($data, $validateRules, $ruleMessages, $attributeName);
+
+        if ($validator->fails()) {
+            $this->dealFailValidator($validator);
+        }
+    }
+
+	protected function dealFailValidator($validator)
+    {
+        // 有错误，处理错误信息并且返回
+        $errors = $validator->errors();
+        $errorTips = '';
+        foreach ($errors->all() as $message) {
+            $errorTips = $errorTips . $message . ',';
+        }
+        $errorTips = substr($errorTips, 0, strlen($errorTips) - 1);
+        //return $this->failed($errorTips, 422);
+        throw new InvalidRequestException($errorTips, 422);
+    }
+
+	protected function setViewData($data)
+    {
+        $this->viewData = array_merge($this->getViewData(), (array)$data);
+    }
+
+	public function render($view = null, array $data = [], array $mergeData = [])
+    {
+        $area = getArea();
+        $view = $area . '.' . ($view ?: (getControllerName() . '.' . getActionName()));
+        $data = array_merge($data, $this->getViewData(), [
+            'title' => $this->getTitle(),
+        ]);
+
+        return view($view, $data, $mergeData);
+    }
 }
