@@ -221,7 +221,9 @@ class IndexController extends MemberBaseController
             ->langs($request->get('lang', 'vi'))
             ->orderByDesc('weight')
             ->latest()
-            ->get(['id','title','subtitle','cover_image','type','weight']);
+            ->get(['id','title','subtitle','cover_image','content','type','weight','apply_type','apply_url','apply_desc',
+            'hall_image','hall_field',
+            'start_at','end_at']);
         return $this->success(['data' => $data]);
     }
 

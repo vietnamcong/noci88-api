@@ -263,7 +263,6 @@ class SeamlessController extends MemberBaseController
             // settle process
             $checkCancel = $checkSettle = false;
             $hasMultiHistories = $histories->count() > 1;
-
             foreach ($histories as $history) {
                 // check settle status
                 if ($history->status == TransactionHistory::STATUS_WIN || $history->status == TransactionHistory::STATUS_LOST || $history->status == TransactionHistory::STATUS_TIE) {
@@ -306,12 +305,16 @@ class SeamlessController extends MemberBaseController
                         continue;
                     }
                 }
+                $s = $this->getParam('ResultTime');
+
+                $date = date('Y-m-d H:i:s', strtotime($s));
 
                 $history->status = $this->getParam('ResultType');
                 $history->win_loss = $this->getParam('WinLoss');
                 $history->balance_before = $balanceBefore;
                 $history->balance_after = $balanceAfter;
-                $history->result_time = $this->getParam('ResultTime');
+                // $history->result_time = $this->getParam('ResultTime');
+                $history->result_time = $date;
 
                 $history->save();
             }
@@ -1066,15 +1069,17 @@ class SeamlessController extends MemberBaseController
      */
     protected function isEnableLog(): bool
     {
-        $systemConfig = SystemConfig::where('name', 'enable_sbo_log')
-            ->where('is_open', 1)
-            ->first();
+        // $systemConfig = SystemConfig::where('name', 'enable_sbo_log')
+        //     ->where('is_open', 1)
+        //     ->first();
 
-        if ($systemConfig) {
-            return (bool)$systemConfig->value;
-        }
+        // if ($systemConfig) {
+        //     return (bool)$systemConfig->value;
+        // }
 
-        return false;
+        // return false;
+
+        return true;
     }
 
     /**
