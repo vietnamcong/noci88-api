@@ -251,3 +251,10 @@ if (!function_exists('getConst')) {
         return config('const.' . $key, $default);
     }
 }
+
+
+function get_unique_array($arr)
+{
+    $array = array_flip($arr);
+    return array_keys($array);
+}

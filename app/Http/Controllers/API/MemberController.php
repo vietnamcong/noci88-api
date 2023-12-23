@@ -42,16 +42,20 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use App\Repositories\PaymentRepository;
+use App\Repositories\MemberBankRepository;
 use Illuminate\Support\Str;
 use App\Http\Controllers\Supports\HasUploadFile;
 // 游客访问
 class MemberController extends MemberBaseController
 {
     use HasUploadFile;
+    protected $memberBankRepository;
+
     public function __construct()
     {
         $this->member = $this->guard()->user();
         $this->memberService = app(MemberService::class);
+        $this->memberBankRepository = app(MemberBankRepository::class);
         parent::__construct();
     }
 
@@ -386,6 +390,8 @@ class MemberController extends MemberBaseController
         ], [], $this->getLangAttribute('recharge'));
        
         $payment = Payment::find($payment_detail['payment_id']);
+        $payment_detail['payment_bank'] = data_get($payment->params, 'bank_type');
+
         if (!$payment->is_open) return $this->failed(trans('res.api.recharge.payment_closed'));
 
         if ($payment->type != Payment::TYPE_USDT && $payment->name != $payment_detail['payment_name']) {
@@ -472,9 +478,11 @@ class MemberController extends MemberBaseController
         $limit = $request->get('limit',10);
 
         $mod = Recharge::query()->where($this->convertWhere($data));
+        
         $sum_money = $mod->sum('money');
 
         $result = $mod->latest()->paginate($limit);
+
         return $this->success([
             'data' => $result,
             'statistic' => [
@@ -489,13 +497,25 @@ class MemberController extends MemberBaseController
 
     public function drawing(Request $request){
         $this->member = $this->getMember();
+
+        $requestParams = $request->all();
+        $withdrawalAmount = data_get($requestParams, 'money');
+        $withdrawalAmount = Str::replace(',', '', $withdrawalAmount);
+
+        $memberBank = $this->memberBankRepository->getMemberBank(request('member_bank_id'));
+        if (empty($memberBank)) {
+            return $this->failed(trans('messages.system_error'));
+        }
         // 参数过滤
-        $data = $request->only(['name','money','account','member_bank_id','member_bank_info','member_remark','qk_pwd','member_bank_text']);
+        $data = $request->only(['member_bank_id','money','qk_pwd']);
+
+        $data['name'] = $memberBank->owner_name;
+        $data['account'] = $memberBank->card_no;
+        $data['member_bank_text'] = $memberBank->name;
+        $data['member_remark'] = $memberBank->remark;
 
         $this->validateRequest($data,[
-            "name" => 'required',
             'money' => 'required|numeric|min:0',
-            'account' => 'required',
             'qk_pwd' => 'required',
             'member_bank_id' => 'required|exists:member_banks,id'
         ],[
@@ -506,7 +526,7 @@ class MemberController extends MemberBaseController
         if($data['money'] > $this->member->money){
             return $this->failed(trans('res.api.drawing.money_not_enough'));
         }
-
+        
         if($data['member_bank_id']){
             $bank_info = MemberBank::query()
                 ->where('member_id',$this->member->id)
@@ -613,10 +633,17 @@ class MemberController extends MemberBaseController
         }
 
 		$message = "[YÊU CẦU RÚT TIỀN] - tài khoản: ".$this->member->name." [Rút tiền về]: ".$data['name']." - Số TK: ".$data['account']." - Ngân hàng: ".$data['member_bank_text']." - số tiền: ".$data['money'];
-		app(ActivityService::class)->sendAlertTelegram($message);
+		// app(ActivityService::class)->sendAlertTelegram($message);
 
         return $this->success([],trans('res.api.drawing.drawing_success'));
 
+    }
+
+    public function drawing_bank() {
+        $result = $this->memberBankRepository->getListBankForUser();
+        return $this->success([
+            'data' => $result
+        ]);
     }
 
     public function drawing_list(Request $request){
@@ -776,7 +803,7 @@ class MemberController extends MemberBaseController
         if(!$member) $member = $this->getMember();
         // 搜索条件，时间和类型
         // $data = [['created_at','>', '2020-03-23 00:00:00']];
-        $data = $request->only(['created_at','operate_type']);
+        $data = $request->only(['created_at','operate_type','money_type']);
         $limit = $request->get('limit',10);
 		foreach($data['created_at'] as $key => $value){
 			$yyyy = explode("-",$value);
@@ -784,16 +811,26 @@ class MemberController extends MemberBaseController
 			if($yyyy[0] == 'yyyy'){
 				$value = date('Y').'-'.$yyyy[1].'-'.$yyyy[2];
 			}
-			$data['created_at'][$key] = $value;
+			$query['member_money_logs.created_at'][$key] = $value;
 		}
-        $data['member_id'] = $member->id;
+        if(data_get($data, 'operate_type') != null){
+            $query['member_money_logs.operate_type'] = $data['operate_type'];
+        }
+        if(data_get($data, 'money_type') != null){
+            $query['member_money_logs.money_type'] = $data['money_type'];
+        }
+        
+
+        $query['member_money_logs.member_id'] = $member->id;
 
         $mod = MemberMoneyLog::query()
-            ->where($this->convertWhere($data))
+            ->leftJoin('recharges','recharges.id','=','member_money_logs.model_id')
+            ->select('member_money_logs.*', 'recharges.bill_no',
+             'recharges.account', 'recharges.name','recharges.payment_type', 'recharges.payment_detail','recharges.status')
+            ->where($this->convertWhere($query))
             ->when($request->get('money_type'),function($query) use ($request){
                 return $query->where('money_type',$request->get('money_type'));
             });
-
         // 统计信息
         $collection = $mod->get();
         $add_sum = $collection->where('number_type',MemberMoneyLog::MONEY_TYPE_ADD)->sum('money');
@@ -2715,4 +2752,8 @@ class MemberController extends MemberBaseController
         return $this->success(['data' => $data]);
     }
   
+    public function payment_type(Request $request){
+        $data = config('platform.payment_type');
+        return $this->success(['data' => $data]);
+    }
 }

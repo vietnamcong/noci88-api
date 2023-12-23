@@ -190,6 +190,7 @@ class IndexController extends MemberBaseController
         else $alert = $alert->groupName(SystemNotice::GROUP_PC);
 
         $alert = $alert->langs()->get();
+        
         return $this->success(['data' => $data,'alert' => $alert]);
     }
 
@@ -215,15 +216,16 @@ class IndexController extends MemberBaseController
     public function getActivityList(Request $request)
     {
         $data = Activity::query()
-            ->where('is_open', 1)
+            ->where('is_open', 1);
+        if($request->get('type', false)){
+            $data = $data->where('type', $request->get('type'));
+        }    
             // ->isApp()
             // ->where('cover_image','!=','')
-            ->langs($request->get('lang', 'vi'))
+        $data = $data->langs($request->get('lang', 'vi'))
+            
             ->orderByDesc('weight')
-            ->latest()
-            ->get(['id','title','subtitle','cover_image','content','type','weight','apply_type','apply_url','apply_desc',
-            'hall_image','hall_field',
-            'start_at','end_at']);
+            ->latest()->get();
         return $this->success(['data' => $data]);
     }
 

@@ -13,6 +13,12 @@ class SystemConfig extends Model
     public $casts = [
         // 'is_open' => 'boolean'
     ];
+    const LANG_COMMON = 'common';
+    const LANG_CN = 'zh_cn';
+    const LANG_VN = 'vi';
+
+    const REMOTE_API = 'remote_api';
+    const SYSTEM = 'system';
 
     const CONFIG_TYPE_TEXT = "text";
     const CONFIG_TYPE_TEXTAREA = "textarea";

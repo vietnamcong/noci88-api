@@ -18,7 +18,10 @@ use Illuminate\Support\Facades\Artisan;
 Route::get('', function () {
     return 'Api Start';
 });
-
+Route::get('storage-link', function () {
+    Artisan::call('storage:link');
+    return response()->json(['messages' => 'Storage Link']);
+});
 // Xóa cache
 Route::get('clear-cache', function () {
     Artisan::call('config:clear');
@@ -73,7 +76,6 @@ Route::group(['prefix'=>'main'], function () {
 Route::get('language', 'IndexController@vip1_languages');
 Route::get('redbag/desc', 'MemberController@get_redbag_desc');
 
-
 Route::prefix("auth")->group(function () {
     Route::post('login', 'AuthController@login');
     Route::post('captcha', 'AuthController@captcha');
@@ -114,6 +116,7 @@ Route::middleware(['refresh.member', 'jwt.auth', 'auth:api'])->group(function ()
 
     Route::post('recharge/list', 'MemberController@recharge_list');
 
+    Route::get('drawing/bank', 'MemberController@drawing_bank');
     Route::post('drawing', 'MemberController@drawing');
     Route::post('drawing/list', 'MemberController@drawing_list');
 
@@ -124,6 +127,7 @@ Route::middleware(['refresh.member', 'jwt.auth', 'auth:api'])->group(function ()
     Route::get('payments/list', 'MemberController@recharge_payments');
     Route::get('payment/normal/list', 'MemberController@payment_list');
     Route::get('payment/online/list', 'MemberController@payment_online');
+    Route::get('payment/type', 'MemberController@payment_type');
 
     Route::get('member/bank/type', 'MemberController@member_bank_type');
     Route::post('member/bank', 'MemberController@member_bank_create');
@@ -243,11 +247,26 @@ Route::post('GetBetStatus', 'SeamlessController@getBetStatus');
 
 // SBO api
 Route::prefix('sbo')->as('api.sbo.')->group(function () {
-    Route::post('/bet/detail', 'SBOController@getBetDetail')->name('bet.detail');
-    Route::post('/signup', 'SBOController@signupAccount')->name('signup');
-    Route::post('/update-bet-setting', 'SBOController@signupAccount')->name('signup');
+    Route::post('/bet/detail', 'SBOController@getBetDetail');
+    Route::post('/signup', 'SBOController@signupAccount');
+    Route::post('/update-bet-setting', 'SBOController@signupAccount');
 });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+// Eeziepay
+Route::prefix('eeziepay')->as('eeziepay.')->group(function () {
+    Route::get('/deposit', ['uses' => 'EeziepayController@deposit']);
+    Route::get('/deposit/confirm', ['uses' => 'EeziepayController@confirm']);
+    Route::get('/deposit/valid', ['uses' => 'EeziepayController@depositValid']);
+    Route::get('/deposit/success', ['uses' => 'EeziepayController@success']);
+    Route::get('/histories', ['uses' => 'EeziepayController@histories']);
+
+    Route::get('/bank-code', ['uses' => 'EeziepayController@bankCode']);
+    Route::get('/bank-qr-code', ['uses' => 'EeziepayController@bankQrCode']);
+
+    Route::post('/redirect', ['uses' => 'EeziepayController@redirect'])->name('redirect');
+    Route::post('/callback', ['uses' => 'EeziepayController@callback'])->name('callback');
 });

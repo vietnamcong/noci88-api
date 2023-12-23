@@ -29,10 +29,10 @@ if (!function_exists('eeziepayMoneyConvert')) {
     function eeziepayMoneyConvert($money, $revert = false)
     {
         if ($revert) {
-            return moneyConvert($money) / 100;
+            return $money / 100000;
         }
 
-        return moneyConvert($money, true) * 100;
+        return $money * 100000;
     }
 }
 

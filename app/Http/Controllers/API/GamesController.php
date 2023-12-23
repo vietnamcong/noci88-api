@@ -51,11 +51,11 @@ class GamesController extends Controller
         return $this->success(['data' => $games]);
     }
 
-    public function categories()
+    public function categories(Request $request)
     {
         $config = app(SystemConfig::class)
             ->where('name', request()->get('category_name', request('is_mobile') ? 'mobile_category_json' : 'web_category_json'))
-            ->where('lang', ApiGame::LANG_COMMON)
+            ->whereIn('lang', [ApiGame::LANG_COMMON, $request->get('lang')])
             ->first();
 
         $categories = collect(json_decode($config->value, true))
@@ -123,7 +123,6 @@ class GamesController extends Controller
     {
         return $this->sboRequest(getConfig('sbo_api.login'), 'POST', [
             'CompanyKey' => data_get($configs, 'company_key'),
-            // 'CompanyKey' => 'EA112BEB7C4944D1BA2376267D733672',
             'ServerId' => data_get($configs, 'server_id'),
             'Username' => getGuard()->user()->name,
             'Portfolio' => $portfolio
@@ -159,7 +158,7 @@ class GamesController extends Controller
                     'locale' => $language,
                     'loginMode' => '3',
                     'productId' => request()->get('productId', 0),
-                    'device' => 'm',
+                    'device' => request()->get('mode', 'm'),
                 ];
                 break;
             case 'Game':
@@ -178,7 +177,7 @@ class GamesController extends Controller
                     'gpid' => request()->get('gpId', '10000'),
                     'gameid' => request()->get('gameId', '0'),
                     'betCode' => request()->get('betCode'),
-                    'device' => 'm',
+                    'device' => request()->get('mode', 'm'),
                 ];
                 break;
             case 'ThirdPartySportsBook':
@@ -194,7 +193,7 @@ class GamesController extends Controller
                     'lang' => $language,
                     'oddstyle' => 'MY',
                     'oddsmode' => 'double',
-                    'device' => 'm',
+                    'device' => request()->get('mode', 'm'),
                 ];
                 break;
             default:

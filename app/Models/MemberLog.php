@@ -46,6 +46,11 @@ class MemberLog extends Model
         return $this->belongsTo('App\Models\Member','member_id');
     }
 
+    public function recharge()
+    {
+        return $this->hasOne($this->model_name, 'id', 'model_id');
+    }
+
     public function scopeMemberName($query,$name){
         return $name ? $query->whereHas('member',function($q) use($name){
             $q->where('name','like','%'.$name.'%');
@@ -58,12 +63,12 @@ class MemberLog extends Model
             ->whereBetween('created_at',[Carbon::now()->subSeconds(15),Carbon::now()]);
     }
 
-    public function scopeMemberLoginFail($query,$name){
+    public function scopeMemberLoginFail($query, $name){
         return $query->where('member_id',0)->where('type',self::LOG_TYPE_API_LOGIN)
             ->where('description','like','%'.$name.'%');
     }
 
-    public function scopeMemberLoginSuccess($query,$name){
+    public function scopeMemberLoginSuccess($query, $name){
         return $query->where('member_id','>',0)->where('type',self::LOG_TYPE_API_LOGIN)
             ->where('description','like','%'.$name.'%');
     }
