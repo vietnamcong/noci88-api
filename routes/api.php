@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
-
+use App\Models\Member;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -18,6 +18,22 @@ use Illuminate\Support\Facades\Artisan;
 Route::get('', function () {
     return 'Api Start';
 });
+
+Route::post('change-region-phone-member', function () {
+    $data = Member::all();
+    foreach ($data as $key => $value) {
+        $phone = $value->phone;
+        if($phone != null){
+            if($phone[0] == "0" ){
+                Member::find($value->id)->update([
+                    'phone' => substr_replace($phone,"+84",0,1)
+                ]);
+            }
+        }
+    }
+    return response()->json(['messages' => 'Change region phone menber success !']);
+});
+
 Route::get('storage-link', function () {
     Artisan::call('storage:link');
     return response()->json(['messages' => 'Storage Link']);
@@ -127,9 +143,11 @@ Route::middleware(['refresh.member', 'jwt.auth', 'auth:api'])->group(function ()
     Route::get('payments/list', 'MemberController@recharge_payments');
     Route::get('payment/normal/list', 'MemberController@payment_list');
     Route::get('payment/online/list', 'MemberController@payment_online');
+    Route::get('payment/automatic', 'MemberController@payment_automatic');
     Route::get('payment/type', 'MemberController@payment_type');
 
     Route::get('member/bank/type', 'MemberController@member_bank_type');
+    Route::get('member/bank/category', 'MemberController@member_bank_category');
     Route::post('member/bank', 'MemberController@member_bank_create');
     Route::get('member/bank', 'MemberController@member_bank_list');
     Route::patch('member/bank/{bank}', 'MemberController@member_bank_update');
@@ -200,8 +218,13 @@ Route::middleware(['refresh.member', 'jwt.auth', 'auth:api'])->group(function ()
     // BTI refund
     Route::get('fssbo/bti/list', 'MemberController@fsSboBtiList');
     Route::post('fssbo/bti/fetch', 'MemberController@fsSboBti');
+    // Refund check
+    Route::post('member/refund/check', 'MemberController@refund_check');
+    Route::post('member/refund/valid', 'MemberController@refund_valid');
 
     Route::get('transactions/list', 'MemberController@getTransactions');
+    Route::get('transactions/{id}', 'MemberController@getTransactionDetail');
+    Route::get('transactions/menber', 'MemberController@getTransactionMenber');
 
     Route::post('team/childlist', 'TeamController@agentChildList');
     Route::get('team/child/detail', 'TeamController@teamDetail');
@@ -229,6 +252,7 @@ Route::prefix('games')->group(function () {
     Route::get('/slot/logos', 'IndexController@getSlotLogoList');
 
     Route::get('/categories', 'GamesController@categories');
+    Route::get('/publisher', 'GamesController@publisher');
     Route::get('/list', 'GamesController@index');
     Route::get('/play', 'GamesController@play');
 });

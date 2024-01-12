@@ -9,6 +9,7 @@ use App\Http\Controllers\Supports\ApiRequest;
 use App\Repositories\SystemConfigRepository;
 use App\Http\Controllers\Controller;
 use App\Models\ApiGame;
+use App\Models\Publisher;
 use App\Models\SystemConfig;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -109,7 +110,7 @@ class GamesController extends Controller
                 // login SBO
                 $response = $this->loginSBO($portfolio, $configs);
                 if ($response->error->id == 0) {
-                    $this->success(['data' => [
+                    return $this->success(['data' => [
                         'redirect' => $this->getSBOGameUrl($portfolio, $response->url, $configs)
                     ]]);
                 }
@@ -240,5 +241,10 @@ class GamesController extends Controller
             // 'Agent' => 'noci88agent',
             'DisplayName' => $user->name,
         ]);
+    }
+
+    function publisher() {
+        $result = Publisher::where('is_open', true)->langs()->get();
+        return $this->success(['data' => $result]);
     }
 }

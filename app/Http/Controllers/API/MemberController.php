@@ -30,6 +30,8 @@ use App\Models\SystemConfig;
 use App\Models\TransactionHistory;
 use App\Models\Transfer;
 use App\Models\YuebaoPlan;
+use App\Models\MemberTask;
+use App\Models\EeziepayHistory;
 use App\Services\ActivityService;
 use App\Services\AgentService;
 use App\Services\MemberService;
@@ -41,8 +43,12 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use App\Repositories\BankRepository;
 use App\Repositories\PaymentRepository;
 use App\Repositories\MemberBankRepository;
+use App\Repositories\BetHistoryRepository;
+use App\Repositories\MemberMoneyLogRepository;
+use App\Repositories\TransactionHistoryRepository;
 use Illuminate\Support\Str;
 use App\Http\Controllers\Supports\HasUploadFile;
 // 游客访问
@@ -50,12 +56,20 @@ class MemberController extends MemberBaseController
 {
     use HasUploadFile;
     protected $memberBankRepository;
+    protected $bankRepository;
+    protected $memberMoneyLogRepository;
+    protected $betHistoryRepository;
+    protected $transactionHistoryRepository;
 
     public function __construct()
     {
         $this->member = $this->guard()->user();
         $this->memberService = app(MemberService::class);
         $this->memberBankRepository = app(MemberBankRepository::class);
+        $this->betHistoryRepository = app(BetHistoryRepository::class);
+        $this->transactionHistoryRepository = app(TransactionHistoryRepository::class);
+        $this->memberMoneyLogRepository = app(MemberMoneyLogRepository::class);
+        $this->bankRepository = app(BankRepository::class);
         parent::__construct();
     }
 
@@ -124,7 +138,7 @@ class MemberController extends MemberBaseController
     {
         $member = $this->getMember();
 
-        $data = Payment::where('is_open', 1)->where('type', 'like', Payment::PREFIX_COMPANY . '%')->langs($member->lang)->get();
+        $data = Payment::where('is_open', 1)->whereIn('type', [Payment::TYPE_BANKPAY])->langs($member->lang)->get();
 
         $data->transform(function ($item, $key) use ($member) {
             if ($item->type == Payment::TYPE_BANKPAY) {
@@ -132,15 +146,26 @@ class MemberController extends MemberBaseController
                 $temp['bank_type_text'] = Arr::get(Bank::getBankArray($member->lang), $item->params['bank_type'], '');
                 $temp['logo'] = Arr::get(Bank::getBank($item->params['bank_type']), 'logo', '');
                 $item->params = $temp;
-            } else if ($item->type == Payment::TYPE_USDT && !is_array($item->usdt_type_text)) {
-                $temp = $item->params;
-                $temp['usdt_type_text'] = $item->usdt_type_text;
-                $item->params = $temp;
             }
+            // else if ($item->type == Payment::TYPE_USDT && !is_array($item->usdt_type_text)) {
+            //     $temp = $item->params;
+            //     $temp['usdt_type_text'] = $item->usdt_type_text;
+            //     $item->params = $temp;
+            // }
             $item->remark_code = random_int(1000, 9999);
 
             return $item;
         });
+
+        return $this->success([
+            'data' => $data
+        ]);
+    }
+
+    function payment_automatic() {
+        $member = $this->getMember();
+
+        $data = Payment::where('is_open', 1)->whereIn('type', [Payment::ONLINE_WECHAT, Payment::COMPANY_WECHAT])->langs($member->lang)->get();
 
         return $this->success([
             'data' => $data
@@ -277,6 +302,11 @@ class MemberController extends MemberBaseController
         }else{
             return $this->failed(trans('res.api.member_bank.delete_fail'));
         }
+    }
+
+    public function member_bank_category() {
+        $result = $this->bankRepository->getListByLang();
+        return $this->success(['data' => $result]);
     }
 
     // 在线充值
@@ -758,28 +788,11 @@ class MemberController extends MemberBaseController
 
     public function betHistories(Request $request, Member $member = null)
     {
-        if (!$member) $member = $this->getMember();
-        if ($request->has('api_name')) {
-            $data['api_name'] = $request->get('api_name');
-        }
-        if ($request->has('created_at')) {
-            $data['created_at'] = $request->get('created_at');
-            foreach ($data['created_at'] as $key => $value) {
-                $yyyy = explode("-", $value);
-                if ($yyyy[0] == 'yyyy') {
-                    $value = date('Y') . '-' . $yyyy[1] . '-' . $yyyy[2];
-                }
-                $data['created_at'][$key] = $value;
-            }
-        }
-        $data['member_id'] = $member->id;
-        $result = BetHistories::query()
-            ->where($this->convertWhere($data))
-            ->latest()
-            ->paginate($request->get('limit', 10));
+        $betHistories = $this->betHistoryRepository->getHistories(request()->all());
+        $tranHistories = $this->transactionHistoryRepository->getHistories(request()->all());
 
         return $this->success([
-            'data' => $result
+            'data' => $betHistories->merge($tranHistories),
         ]);
     }
 
@@ -1586,7 +1599,7 @@ class MemberController extends MemberBaseController
         if ($member->isDemo()) {
             return $this->success(['data' => [], 'deadtime' => time()]);
         }
-
+       
         $fsInfo = $this->memberService->getFsSboSaba($this->getMember());
         $fsList = data_get($fsInfo, 'data');
 
@@ -1706,10 +1719,11 @@ class MemberController extends MemberBaseController
             });
         }catch (Exception $e){
             DB::rollBack();
-            return $this->failed(trans('res.api.common.operate_fail').$e->getMessage());
+            return false;
+            // return $this->failed(trans('res.api.common.operate_fail').$e->getMessage());
         }
-
-        return $this->success([],trans('res.api.fs_now.get_success'));
+        return true;
+        // return $this->success([],trans('res.api.fs_now.get_success'));
     }
 
     public function fsSbo(Request $request)
@@ -1793,10 +1807,11 @@ class MemberController extends MemberBaseController
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
-            return $this->failed(trans('res.api.common.operate_fail') . $e->getMessage());
+            return false;
+            // return $this->failed(trans('res.api.common.operate_fail') . $e->getMessage());
         }
-
-        return $this->success([], trans('res.api.fs_now.get_success'));
+        return true;
+        // return $this->success([], trans('res.api.fs_now.get_success'));
     }
 
     public function fsSboSaba(Request $request)
@@ -1881,10 +1896,11 @@ class MemberController extends MemberBaseController
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
-            return $this->failed(trans('res.api.common.operate_fail') . $e->getMessage());
+            return false;
+            // return $this->failed(trans('res.api.common.operate_fail') . $e->getMessage());
         }
-
-        return $this->success([], trans('res.api.fs_now.get_success'));
+        return true;
+        // return $this->success([], trans('res.api.fs_now.get_success'));
     }
 
     public function fsSboAfb(Request $request)
@@ -1969,10 +1985,11 @@ class MemberController extends MemberBaseController
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
-            return $this->failed(trans('res.api.common.operate_fail') . $e->getMessage());
+            return false;
+            // return $this->failed(trans('res.api.common.operate_fail') . $e->getMessage());
         }
-
-        return $this->success([], trans('res.api.fs_now.get_success'));
+        return true;
+        // return $this->success([], trans('res.api.fs_now.get_success'));
     }
 
     public function fsSboBti(Request $request)
@@ -2057,13 +2074,21 @@ class MemberController extends MemberBaseController
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
-            return $this->failed(trans('res.api.common.operate_fail') . $e->getMessage());
+            return false;
+            // return $this->failed(trans('res.api.common.operate_fail') . $e->getMessage());
         }
-
-        return $this->success([], trans('res.api.fs_now.get_success'));
+        return true;
+        // return $this->success([], trans('res.api.fs_now.get_success'));
     }
 
     public function getTransactions(Request $request)
+    {
+        return $this->success([
+            'data' => $this->memberMoneyLogRepository->getHistories($request->all()),
+        ]);
+    }
+
+    public function getTransactionMenber(Request $request)
     {
         $member = $this->getMember(1);
 
@@ -2073,6 +2098,42 @@ class MemberController extends MemberBaseController
 
         return $this->success([
             'data' => $this->memberService->getTransactions($this->getMember(), $request),
+        ]);
+    }
+    
+    public function getTransactionDetail($id) {
+        $result = MemberMoneyLog::find($id);
+        $detail =  null;
+        if($result->model_name == get_class(new EeziepayHistory())){
+            $detail = EeziepayHistory::find($result->model_id);
+            $detail->bill_no  = $detail->billno;
+        }
+        if($result->model_name == get_class(new Recharge())){
+            $detail = Recharge::find($result->model_id);
+            if($detail != null){
+                $payment_detail = $detail->payment_detail;
+                if(is_array($payment_detail) ){
+                    $payment_id = data_get($payment_detail, 'payment_id');
+                    $payment = Payment::find($payment_id);
+                    
+                    $detail->payment_detail = $payment;
+                }
+            }
+        }
+        if($result->model_name == get_class(new Drawing())){
+            $detail = Drawing::find($result->model_id);
+        }
+        if($result->model_name == get_class(new MemberTask())){
+            $detail = MemberTask::find($result->model_id);
+        }
+        if($result->model_name == get_class(new LevelConfig())){
+            $detail = LevelConfig::find($result->model_id);
+        }
+        
+        
+        $result->detail = $detail;
+        return $this->success([
+            'data' => $result,
         ]);
     }
 
@@ -2088,9 +2149,9 @@ class MemberController extends MemberBaseController
             ->whereNotNull('game_type');
 
         if ($fsLevel->distinct()->count() < count(trans('res.option.game_type')) - 1) {
-            throw new InvalidRequestException(trans('res.api.fs_now.fs_level_err'));
+            return collect(['data' => collect([]), 'fs_level' => []]);
         }
-
+        
         // 获取用户所有没有获取过反水的游戏记录，分类获取有效投注金额 和 gametype api_name
         $gameRecords = DB::table('game_records')
             ->select(DB::raw('sum(validBetAmount) as total_valid,gameType,GROUP_CONCAT(DISTINCT api_name SEPARATOR ",") as api_names'))
@@ -2142,7 +2203,7 @@ class MemberController extends MemberBaseController
         if(!$agent = $member->agent) return $this->failed(trans('res.api.apply_agent.not_agent'));
 
         $return = [
-            'agent_site' => route('agent.login'),
+            // 'agent_site' => route('agent.login'),
             'share_link' => $agent->getAgentUri(),
             'share_link_qrcode' => 'https://api.pwmqr.com/qrcode/create/?url='.urlencode($agent->getAgentUri()),
             'member_count' => count(app(AgentService::class)->getChildMemberIds($member))
@@ -2724,14 +2785,16 @@ class MemberController extends MemberBaseController
         $data = LevelConfig::orderBy('level')->where('lang', $member->lang)->get();
 
         $memberLevels = LevelConfig::where('level',$member->level)->where('lang', $member->lang)->first();
-
+        
         return $this->success([
             'data' => [
                 'levels' => $data,
                 'total_bet' => app(GameRecord::class)->getMemberTotalValidBet($member->id),
                 'total_deposit' => Recharge::where('member_id',$member->id)->where('status',Recharge::STATUS_SUCCESS)->sum('money'),
+                'money' => $member->money,
                 'levelup_types' => trans('res.option.levelup_types'),
                 'member_levels' => [
+                    'level'     => $memberLevels->level,
                     'level_bonus' => $memberLevels->level_bonus ?? 0,
                     'day_bonus' => $memberLevels->day_bonus ?? 0,
                     'week_bonus' => $memberLevels->week_bonus ?? 0,
@@ -2755,5 +2818,71 @@ class MemberController extends MemberBaseController
     public function payment_type(Request $request){
         $data = config('platform.payment_type');
         return $this->success(['data' => $data]);
+    }
+
+    public function refund_check(Request $request) {
+        $response = $this->fs_now_list();
+        $data['fsNow'] = $response && $response->status == 'success' ? $response->data : [];
+
+        $response = $this->fsSboList();
+        $data['fsSbo'] = $response && $response->status == 'success' ? $response->data : [];
+
+        $response = $this->fsSboSabaList();
+        $data['fsSboSaba'] = $response && $response->status == 'success' ? $response->data : [];
+
+        $response = $this->fsSboAfbList();
+        $data['fsSboAfb'] = $response && $response->status == 'success' ? $response->data : [];
+
+        $response = $this->fsSboBtiList();
+        $data['fsSboBti'] = $response && $response->status == 'success' ? $response->data : [];
+
+        return $this->success(['data' => $data]);
+    }
+
+    public function refund_valid(Request $request) {
+        $request['deadtime'] = time();
+
+        $isSuccess = true;
+        
+        // SBO refund
+        $response = $this->fs_now($request);
+
+        if ($response) {
+            $isSuccess = false;
+        }
+
+        // SBO SABA refund
+        $response = $this->fsSbo($request);
+
+        if ($response) {
+            $isSuccess = false;
+        }
+
+        // SBO AFB refund
+        $response = $this->fsSboSaba($request);
+
+        if ($response) {
+            $isSuccess = false;
+        }
+
+        // SBO BTI refund
+        $response = $this->fsSboAfb($request);
+
+        if ($response) {
+            $isSuccess = false;
+        }
+        
+        // SBO BTI refund
+        $response = $this->fsSboBti($request);
+
+        if ($response) {
+            $isSuccess = false;
+        }
+
+        if (!$isSuccess) {
+            return $this->success(['data' => trans('res.refund.receive_success')]);
+        }
+
+        return $this->failed(trans('res.system_error'));
     }
 }

@@ -184,6 +184,18 @@ class IndexController extends MemberBaseController
             ->langs()
             ->get();
 
+        $app = SystemNotice::query()
+            ->select(['title', 'content', 'url'])
+            ->groupName(SystemNotice::GROUP_APP)
+            ->langs()
+            ->get();   
+
+        $credit = SystemNotice::query()
+            ->select(['title', 'content', 'url'])
+            ->groupName(SystemNotice::GROUP_CREDIT)
+            ->langs()
+            ->get(); 
+
         $alert = SystemNotice::query()
             ->select(['title', 'content', 'url']);
         if($request->get('isMobile')) $alert = $alert->groupName(SystemNotice::GROUP_MOBILE);
@@ -191,7 +203,7 @@ class IndexController extends MemberBaseController
 
         $alert = $alert->langs()->get();
         
-        return $this->success(['data' => $data,'alert' => $alert]);
+        return $this->success(['data' => $data,'alert' => $alert, 'app' => $app, 'credit' => $credit]);
     }
 
     public function getAppNotice(){
@@ -305,37 +317,21 @@ class IndexController extends MemberBaseController
         $tag = $request->get('tag','');
         $tag = ($tag && $tag != 'all')? [$tag] : [];
 
-        if($gameType == 2){
-            $mod = ApiGame::whereIn('api_name',Api::where('is_open',1)->cnLangs($this->getMemberLang())->pluck('api_name'))
-                ->langs($this->getMemberLang())
-                ->isMobile($request->get('isMobile',0))
-                ->when($request->get('api_code'),function($query) use($request){
-                    $query->where('api_name',$request->get('api_code'));
-                })
-                ->when($request->get('keyword',''),function($query) use($request){
-                    $query->where('title','like','%'.$request->get('keyword').'%');
-                })->where('game_type',$gameType)
-                ->whereTags($tag)->where('is_open',1)
-                ->orderBy('weight','desc');
-
-            $data = $request->get('isMobile') ? $mod->get() : $mod->paginate($request->get('limit',15));
-            return $this->success(['data' => $data]);
-        }
-
-        $mod = GameList::whereIn('api_name', Api::where('is_open',1)->cnLangs($this->getMemberLang())->pluck('api_name'))
-            ->with('api:api_name,api_title')->when($request->get('api_code'),function($query) use($request){
-                $query->where('api_name',$request->get('api_code'));
-            })
-            ->when($request->get('isMobile'),function($query) use($request) {
+        $mod = GameList::
+            // whereIn('api_name', Api::where('is_open',1)->cnLangs($this->getMemberLang())->pluck('api_name'))
+            // ->with('api:api_name,api_title')->when($request->get('api_code'),function($query) use($request){
+            //     $query->where('api_name',$request->get('api_code'));
+            // })
+            // ->
+            when($request->get('isMobile'),function($query) use($request) {
                 $query->whichClientType($request->get('isMobile') ? 2 : 1);
             })
-            ->when($request->get('keyword',''),function($query) use($request){
-                $query->where('name','like','%'.$request->get('keyword').'%');
+            ->when($request->get('publisher_id'),function($query) use($request){
+                $query->where('publisher_id', $request->get('publisher_id'));
             })
             ->where('game_type',$gameType)
-            ->whereTags($tag)
+            // ->whereTags($tag)
             ->where('is_open',1)->orderBy('weight','desc');
-            //->paginate($request->get('limit',15));
 
         $data = $request->get('isMobile') ? $mod->get() : $mod->paginate($request->get('limit',15));
 

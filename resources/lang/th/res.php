@@ -2276,5 +2276,10 @@ return [
             'set_offline_default' => 'ตั้งค่าระดับล่างเริ่มต้นกลับ',
             'qrcode' => 'รหัสสองมิติ'
         ]
-    ]
+    ],
+     // refund
+    'refund' => [
+        'title' => 'Refund today',
+        'receive_success' => 'Receive success',
+    ],
 ];

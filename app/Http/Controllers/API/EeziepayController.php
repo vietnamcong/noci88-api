@@ -167,7 +167,7 @@ class EeziepayController extends Controller
     {
         // check history
         $history = app(EeziepayHistory::class)->where('partner_orderid', request()->get('partner_orderid'))->first();
-        
+
         if (empty($history)) {
             logInfo(request()->all());
             return $this->xml();
@@ -175,7 +175,7 @@ class EeziepayController extends Controller
         
         // get member info
         $member = app(Member::class)->where('id', $history->member_id)->first();
-
+        
         DB::beginTransaction();
         try {
 
@@ -211,17 +211,18 @@ class EeziepayController extends Controller
                     'bill_no'           => request()->get('billno'),
                     'name'              => $member->name,
                     'member_id'         => $member->id,
-                    'origin_money'      => $amount,
-                    'money'             => $beforeMoney,
+                    'account'           => '',
+                    'origin_money'      => 0,
+                    'money'             => $amount / 1000,
                     'money_before'      => $beforeMoney,
                     'money_after'       => $member->money,
                     'payment_type'      => Payment::PAYMENT_EEZIEPAY,
                     'payment_detail'    => "",
-                    'status'            => 1,
+                    'status'            => 2,
                     'lang'              => $member->lang,
                     'hk_at'             => Carbon::now()->format('Y-m-d H:i:s')
                 ]);
-
+                
                 // update money log
                 MemberMoneyLog::create([
                     'member_id'         => $history->member_id,
@@ -231,8 +232,8 @@ class EeziepayController extends Controller
                     'operate_type'      => MemberMoneyLog::OPERATE_TYPE_MEMBER,
                     'number_type'       => MemberMoneyLog::MONEY_TYPE_ADD,
                     'user_id'           => 0,
-                    'model_name'        => get_class($recharge),
-                    'model_id'          => $recharge->id
+                    'model_name'        => get_class($history),
+                    'model_id'          => $historyId
                 ]);
             }
 

@@ -338,7 +338,26 @@ return [
             'TCB.QR.VN' => 'Ngân hàng TMCP Kỹ Thương Việt Nam - Techcombank',
         ],
     ],
-
+    
+    // Pay Spec
+    'pay_spec' => [
+        'url'       => 'https://payspec/API/send',
+        'card_url'  => 'https://payspec.club/chargingws/v2',
+        'key'       => env('PAY_SPEC_KEY'),
+        'type'      => [
+            'momo'  => 'Momo',
+            'bank'  => 'Bank'
+        ],
+        'card_type' => [
+            'Viettel'       => 'Viettel',
+            'Mobifone'      => 'Mobifone',
+            'Vinaphone'     => 'Vinaphone',
+            'Zing'          => 'Zing',
+            'Vietnamobile'  => 'Vietnamobile',
+            'Vcoin'         => 'Vcoin',
+            'Gate'          => 'Gate',
+        ]
+    ],
     // banking logo
     'bank_logo' => [
         'eeziepay' => [

@@ -237,7 +237,7 @@ class MemberService
             ->when($end, function ($query) use ($end) {
                 $query->where('transaction_histories.created_at', '<', date('Y-m-d H:i:s', $end));
             })
-            ->groupBy('transaction_histories.product_type');
+            ->groupBy('transaction_histories.product_type', 'transaction_histories.game_provider');
 
         $data = $fsLevel
             ->rightJoinSub($histories, 'th', function ($join) {
@@ -303,7 +303,7 @@ class MemberService
             ->when($end, function ($query) use ($end) {
                 $query->where('transaction_histories.created_at', '<', date('Y-m-d H:i:s', $end));
             })
-            ->groupBy('transaction_histories.product_type');
+            ->groupBy('transaction_histories.product_type', 'transaction_histories.game_provider');
 
         $data = $fsLevel
             ->rightJoinSub($histories, 'th', function ($join) {
@@ -370,7 +370,7 @@ class MemberService
             ->when($end, function ($query) use ($end) {
                 $query->where('transaction_histories.created_at', '<', date('Y-m-d H:i:s', $end));
             })
-            ->groupBy('transaction_histories.product_type');
+            ->groupBy('transaction_histories.product_type', 'transaction_histories.game_provider');
 
         $data = $fsLevel
             ->rightJoinSub($histories, 'th', function ($join) {

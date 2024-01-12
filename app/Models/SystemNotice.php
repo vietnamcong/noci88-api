@@ -22,6 +22,7 @@ class SystemNotice extends Base
     const GROUP_CREDIT = 'credit'; // 借呗公告
     const GROUP_PC = 'pc'; // 电脑弹窗
     const GROUP_MOBILE = 'mobile'; // 手机弹窗
+    const GROUP_APP = 'app'; // 手机弹窗
 
     public function scopeGroupName($query,$name){
         return $query->where('group_name',$name)->where('is_open',1)->orderBy('weight','desc');

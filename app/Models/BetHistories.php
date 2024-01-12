@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Presenters\PBetHistory;
 
 class BetHistories extends Base
 {
     use SoftDeletes;
+    use PBetHistory;
 
     public $table = 'bet_histories';
 

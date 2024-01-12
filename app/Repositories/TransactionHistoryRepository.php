@@ -20,6 +20,9 @@ class TransactionHistoryRepository extends CustomRepository
 
     public function getHistories($params)
     {
+        // not status WAITING
+        $params['status_neq'] = $this->model::STATUS_WAITING;
+
         $params['member_id_eq'] = getGuard()->user()->id;
         $params['api_name_eq'] = data_get($params, 'api_name');
         $params['game_type_eq'] = data_get($params, 'game_type');
@@ -32,7 +35,7 @@ class TransactionHistoryRepository extends CustomRepository
                 $params['created_at_lteq'] = Carbon::now()->format('Y-m-d 23:59:59');
                 break;
             case getConstant('OPTIONS.CREATED_AT.LAST_30_DAYS'):
-                $params['created_at_gteq'] = Carbon::now()->subDays(30)->format('Y-m-d 00:00:00');
+                $params['created_at_gteq'] = Carbon::now()->subDays(100)->format('Y-m-d 00:00:00');
                 $params['created_at_lteq'] = Carbon::now()->format('Y-m-d 23:59:59');
                 break;
             default:

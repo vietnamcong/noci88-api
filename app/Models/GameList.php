@@ -11,7 +11,7 @@ class GameList extends Model
 
     protected $fillable = [
         'api_name', 'name', 'en_name', 'game_type', 'game_code', 'img_path', 'img_url', 'client_type',
-        'platform', 'param_remark', 'is_open', 'weight', 'tags'
+        'platform', 'param_remark', 'is_open', 'weight', 'tags','publisher_id'
     ];
 
     public static $list_field = [

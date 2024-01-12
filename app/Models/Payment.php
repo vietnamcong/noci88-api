@@ -36,6 +36,9 @@ class Payment extends Base
     const PAYMENT_WECHAT = 'company_wechat';
     const PAYMENT_BANKPAY = 'company_bankpay';
 
+    const ONLINE_WECHAT = 'online_wechat';
+    const COMPANY_WECHAT = 'company_wechat';
+
     public $appends = ['type_text'];
 
     public function getParamsAttribute()

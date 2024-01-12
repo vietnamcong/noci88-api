@@ -4,11 +4,13 @@ namespace App\Models;
 
 use App\Models\Casts\TransactionHistoryCasting;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Presenters\PTransactionHistory;
 
 class TransactionHistory extends Base
 {
     use SoftDeletes;
     use TransactionHistoryCasting;
+    use PTransactionHistory;
 
     public $table = 'transaction_histories';
 
@@ -96,4 +98,18 @@ class TransactionHistory extends Base
     {
         return $this->hasMany(BalanceTransactionHistory::class, 'transaction_history_id');
     }
-}
+
+    protected $appends = ['game_title', 'bet_time', 'result'];
+
+    public function getGameTitleAttribute() {
+        return $this->getGameTitle();
+    }
+
+    public function getBetTimeAttribute() {
+        return $this->getBetTime();
+    }
+
+    public function getResultAttribute() {
+        return $this->getResult();
+    }
+}   

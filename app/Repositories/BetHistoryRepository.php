@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-use App\Models\BetHistory;
+use App\Models\BetHistories;
 use App\Repositories\Concerns\CustomQuery;
 use Carbon\Carbon;
 
@@ -10,7 +10,7 @@ class BetHistoryRepository extends CustomRepository
 {
     use CustomQuery;
 
-    protected $model = BetHistory::class;
+    protected $model = BetHistories::class;
 
     public function __construct()
     {

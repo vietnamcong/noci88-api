@@ -108,7 +108,7 @@ if (!function_exists('getArea')) {
     function getArea(): string
     {
         $default = getConfig('area.frontend');
-        
+
         if (App::runningInConsole()) {
             return getConfig('area.command');
         }
@@ -121,6 +121,7 @@ if (!function_exists('getArea')) {
 
         $area = strtok($uri[1], '?');
         $routeAlias = getConfig('route_alias');
+        
         return data_get(array_flip($routeAlias), $area, $default);
     }
 }
@@ -495,6 +496,7 @@ if (!function_exists('getGuard')) {
         if (!empty($guards) && in_array($area, $guards)) {
             return Auth::guard($area);
         }
+
         
         // return default if guard not setting or not found
         return Auth::guard();

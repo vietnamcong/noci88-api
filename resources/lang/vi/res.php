@@ -1455,7 +1455,8 @@ return [
             9 => 'Casual',
             10 => 'Table Game',
             11 => 'LK',
-            99 => 'Xổ số hệ thống'
+            12 => 'Đá gà',
+            99 => 'Keno'
         ],
 
         'activity_type' => [

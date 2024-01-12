@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Presenters\PMemberMoneyLogHistory;
 
 class MemberMoneyLog extends Model
 {
+    use PMemberMoneyLogHistory;
     protected $guarded = ['id'];
 
     public static $list_field = [
@@ -64,6 +66,7 @@ class MemberMoneyLog extends Model
     const OPERATE_TYPE_MONTH_BONUS = 27; // 每月礼金
     const OPERATE_TYPE_YEAR_BONUS = 28; // 每年礼金
     const OPERATE_TYPE_LEVEL_BONUS = 29; // 晋升礼金
+    const OPERATE_TYPE_DRAWING= 30; // 提款
 
     const MONEY_TYPE_ADD = 1;
     const MONEY_TYPE_SUB = -1;
@@ -132,6 +135,7 @@ class MemberMoneyLog extends Model
         self::OPERATE_TYPE_MONTH_BONUS,
         self::OPERATE_TYPE_YEAR_BONUS,
         self::OPERATE_TYPE_LEVEL_BONUS,
+        self::OPERATE_TYPE_DRAWING
     ];
 
     const levelUpAwardTypes = [

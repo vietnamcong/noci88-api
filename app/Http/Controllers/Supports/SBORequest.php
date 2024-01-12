@@ -8,6 +8,7 @@ trait SBORequest
 
     public function sboRequest($url, $method = 'POST', $params = [], $header = [])
     {
+        // dd($header);
         $handle = curl_init();
         $userAgent = isset($_SERVER['HTTP_USER_AGENT']) ?? $_SERVER['HTTP_USER_AGENT'];
         $setOption = [

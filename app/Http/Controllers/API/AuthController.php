@@ -214,9 +214,9 @@ class AuthController extends MemberBaseController
             $data['lang'] = $top->lang;
         }
 
-        if (systemconfig('vip1_is_register_sms_open')) {
-            app(PaasooService::class)->validate_code(Arr::get($data, 'phone'), $request->get('sms_code'));
-        }
+        // if (systemconfig('vip1_is_register_sms_open')) {
+        //     app(PaasooService::class)->validate_code(Arr::get($data, 'phone'), $request->get('sms_code'));
+        // }
 
         $invite = null;
         if ($token = $request->get('token')) {
@@ -484,23 +484,26 @@ class AuthController extends MemberBaseController
     public function send_sms(Request $request)
     {
         $data = $request->all();
-
         // 判断是否开启注册发送短信功能
         if (!\systemconfig('vip1_is_register_sms_open')) return $this->failed(trans('res.api.common.operate_error'));
 
         $this->validateRequest($data, [
             'phone' => 'required'
         ], $this->getLangAttribute('member'));
+        
+        $member = Member::where('phone', $data['phone'])->first();
+        if (!$member)
+            return $this->failed(trans('res.api.common.member_not_exist'));
 
         // 判断2分钟内该IP是否接收过短信验证码
         $ip = get_client_ip();
         if (!$ip) return $this->failed(trans('res.api.common.net_again_err'));
 
         $service = app(PaasooService::class);
-
+        
         $flag = MemberLog::where('type', MemberLog::LOG_TYPE_MEMBER_SMS)
             ->where('ip', $ip)->where('created_at', '>', Carbon::now()->subMinutes(PaasooService::VALID_MINUTES))->exists();
-
+        
         if ($flag) return $this->failed(trans('res.api.sms.operation_repeat'));
 
         try {
@@ -508,11 +511,11 @@ class AuthController extends MemberBaseController
             $code = $service->generate_code();
 
             $service->send_sms($data['phone'], $code);
-
+            
             // 短信发送成功，记录日志
             app(MemberLogService::class)->sendSmsLogCreate($ip, $code, $data['phone']);
 
-            return $this->success([]);
+            return $this->success(['menber' => $member]);
         } catch (\Exception $e) {
             return $this->failed(trans('operate_fail') . $e->getMessage());
         }
@@ -603,17 +606,21 @@ class AuthController extends MemberBaseController
     public function reset_password(Request $request)
     {
         $data = $request->only(['password', 'password_confirmation', 'phone', 'sms_code']);
+
+        $member = Member::where('phone', $data['phone'])->first();
+
+        if (!$member)
+            return $this->failed(trans('res.api.common.member_not_exist'));
+
         // 验证短信是否正确
-        app(PaasooService::class)->validate_code(Arr::get($data, 'phone'), $request->get('sms_code'), MemberLog::LOG_TYPE_MEMBER_RESET_SMS);
+        app(PaasooService::class)->validate_code(Arr::get($data, 'phone'), $request->get('sms_code'), MemberLog::LOG_TYPE_MEMBER_SMS);
 
         $this->validateRequest($data, [
             'password' => 'required|confirmed|min:6',
             'password_confirmation' => 'required|min:6|same:password'
         ], [], $this->getLangAttribute('modify_pwd'));
 
-        $member = Member::where('phone', $data['phone'])->first();
-        if (!$member)
-            return $this->failed(trans('res.api.common.member_not_exist'));
+       
 
         if ($member->update([
             'password' => $data['password']
