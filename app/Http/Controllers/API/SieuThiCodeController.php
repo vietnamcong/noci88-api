@@ -20,6 +20,7 @@ class SieuThiCodeController extends Controller
     protected $vt_url = 'historyapiviettin';
     protected $vc_url = 'historyapivcb';
     protected $ac_url = 'historyapiacb';
+    protected $bidv_url = 'historyapibidv';
 
     public function cron_bank() {
         $payment = Payment::where('is_open', 1)->whereNotNull('callback_url')->get();
@@ -29,7 +30,7 @@ class SieuThiCodeController extends Controller
             }
         }
         return $this->success([
-            'data' => 'Call Bank Cron Success V16 !'
+            'data' => 'Call Bank Cron Success V17 !'
         ]);  
     }
 
@@ -122,6 +123,22 @@ class SieuThiCodeController extends Controller
                         if(count($array) > 4){
                             $item['member_name'] = $array[2];
                             $item['bill_no'] = $array[3];
+                        }
+                        array_push($data, $item);
+                    }
+                }
+            }
+            if($type == $this->bidv_url){
+                $result = data_get($response, 'txnList');
+                if($result != null){
+                    foreach ($result as $key => $value) {
+                        $array = explode(" ", data_get($value, 'txnRemark'));
+    
+                        $item['credit_amount'] = data_get($value, 'amount');
+                        if(count($array) > 5){
+                            $item['member_name'] = $array[4];
+
+                            $item['bill_no'] = $array[5];
                         }
                         array_push($data, $item);
                     }
