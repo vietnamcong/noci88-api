@@ -20,6 +20,8 @@ class Payment extends Base
         'rate' => ['name' => 'Tỷ lệ quà tặng', 'type' => 'text', 'is_show' => true],
         'min' => ['name' => 'Số tiền nạp tối thiểu', 'type' => 'text'],
         'max' => ['name' => 'Số tiền nạp tối đa', 'type' => 'text'],
+        'arrange' => ['name' => 'Số thứ tự','type' => 'number'],
+        'callback_url' => ['name' => 'CallBack Api Url','type' => 'text'],
         // 'forex' => ['name' => '交易比例','type' => 'text','is_show' => true],
         'lang' => ['name' => 'Ngôn ngữ', 'type' => 'select', 'is_show' => true, 'data' => 'platform.lang_fields'],
         'is_open' => ['name' => 'Có mở không', 'type' => 'radio', 'is_show' => true, 'data' => 'platform.is_open', 'style' => 'platform.style_isopen']
@@ -35,6 +37,7 @@ class Payment extends Base
     const PAYMENT_USDT = 'company_usdt';
     const PAYMENT_WECHAT = 'company_wechat';
     const PAYMENT_BANKPAY = 'company_bankpay';
+    const PAYMENT_CARDPAY = 'online_cardpay';
 
     const ONLINE_WECHAT = 'online_wechat';
     const COMPANY_WECHAT = 'company_wechat';

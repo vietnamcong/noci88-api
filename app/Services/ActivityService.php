@@ -161,10 +161,10 @@ class ActivityService
     public function sendAlertTelegram(string $message)
     {
         $config = SystemConfig::query()->latest()->getConfigGroup('telegram');
-        // $botID = $config["telegram_bot_id"];
-        // $chatID = $config["telegram_chat_id"];
-        $botID = env('TELEGRAM_TOKEN');
-        $chatID = env('TELEGRAM_CHAT_ID');
+        $botID = $config["telegram_bot_id"];
+        $chatID = $config["telegram_chat_id"];
+        // $botID = env('TELEGRAM_TOKEN');
+        // $chatID = env('TELEGRAM_CHAT_ID');
 
         if ($message == '' or !$botID or !$chatID) {
             return false;
@@ -176,7 +176,6 @@ class ActivityService
             'parse_mode' => 'HTML',
             // 'parse_mode' => 'markdown',
         ];
-
         $apiURL = "https://api.telegram.org/bot" . $botID . "/sendMessage?" . http_build_query($data);
         $response = Http::get($apiURL);
 

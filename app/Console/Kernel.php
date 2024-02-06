@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
         Commands\CalculateBonus::class,
         Commands\CalculateVip::class,
         Commands\ResetVipByMonth::class,
+        Commands\SieuThiCodeCommand::class,
     ];
 
     /**
@@ -38,6 +39,7 @@ class Kernel extends ConsoleKernel
         // $schedule->command('calculate:reset-vip')
         // 		->monthlyOn(1, '00:30')
         //         ->timezone('Asia/Ho_Chi_Minh');
+        $schedule->command('command:sieuthicode')->everyMinute();
     }
 
     /**

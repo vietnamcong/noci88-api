@@ -886,6 +886,9 @@ return [
         18 => 'SL',
         99 => 'Xổ số hệ thống'
     ],
-
+    'member_wheel_award' => [
+        '1' => 'Khác',
+        '2' => 'Tiền'
+    ],
     'domain_api' => 'http://fetch.336699bet.com',
 ];

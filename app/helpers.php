@@ -297,3 +297,20 @@ function curls($url, $params = false, $ispost = 1, $https = 0)
     curl_close($ch);
     return $response;
 }
+
+function randomFloat($min = 0, $max = 10)
+{
+    $num = $min + mt_rand() / mt_getrandmax() * ($max - $min);
+    return sprintf("%.2f", $num);
+}
+
+function writelog($str)
+{
+    /**
+     * $file = fopen(public_path() . "/log.txt", "a");
+     * fwrite($file, date('Y-m-d H:i:s') . "   " . $str . "\r\n");
+     * fclose($file);
+     * //print_r($str.'<br/><br/>');
+     * */
+    \Illuminate\Support\Facades\Log::info($str);
+}

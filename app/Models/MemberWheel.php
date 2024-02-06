@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class MemberWheel extends Model
+class MemberWheel extends Base
 {
     public $guarded = ['id'];
 
@@ -16,14 +16,15 @@ class MemberWheel extends Model
         'status' => ['name' => 'Nhận trạng thái','type' => 'select','is_show' => true,'data' => 'platform.wheel_status']
     ];
 
-    const STATUS_NOT_SEND = 1;
-    const STATUS_SENDED = 2;
-    const STATUS_SENDING = 3;
+    const STATUS_UNDEAL = 1; // Đang chờ xác nhận
+    const STATUS_SUCCESS = 2; // Nhận thưởng thành công
+    const STATUS_FAILED = 3; //  Nhận thưởng thất bại
 
     protected $appends = ['status_text'];
 
     public function getStatusTextAttribute(){
-        return isset_and_not_empty(config('platform.wheel_status'),$this->attributes['status'],$this->attributes['status']);
+        $wheel_status = trans('res.option.wheel_status');
+        return data_get($wheel_status,$this->attributes['status']);
     }
 
     public function member()

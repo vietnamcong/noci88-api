@@ -40,7 +40,7 @@ class MemberMoneyLog extends Model
 
     const OPERATE_TYPE_HONGLI = 7; // 平台红利
     const OPERATE_TYPE_HONGBAO = 8; // 抢红包
-
+    
     const OPERATE_TYPE_RECHARGE_ACTIVITY = 6; // 充值活动
     const OPERATE_TYPE_WITHDRAWAL_ACTIVITY = 30;
     const OPERATE_TYPE_MEMBER = 9; // 充值提现
@@ -67,6 +67,7 @@ class MemberMoneyLog extends Model
     const OPERATE_TYPE_YEAR_BONUS = 28; // 每年礼金
     const OPERATE_TYPE_LEVEL_BONUS = 29; // 晋升礼金
     const OPERATE_TYPE_DRAWING= 30; // 提款
+
 
     const MONEY_TYPE_ADD = 1;
     const MONEY_TYPE_SUB = -1;

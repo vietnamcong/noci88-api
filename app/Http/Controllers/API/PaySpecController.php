@@ -31,26 +31,4 @@ class PaySpecController extends Controller
 
         $response = app(Client::class)->request('POST', $url, ['json' => $params]);
     }
-
-    public function card_confirm() {
-        $url        =   getConfig('pay_spec.card_url');
-        $apiKey     =   getConfig('pay_spec.key');
-        $type       =   $request->type;
-        $seri       =   $request->seri;
-        $mathe      =   $request->mathe;
-        $menhgia    =   $request->menhgia;
-
-        $content    =   uniqid();
-
-        $params = [
-            'APIkey'        => $apiKey,
-            'type'          => $type,
-            'seri'          => $seri,
-            'mathe'         => $mathe,
-            'menhgia'       => $menhgia,
-            'content'       => $content
-        ];
-        
-        $response = app(Client::class)->request('POST', $url, ['json' => $params]);
-    }
 }

@@ -117,7 +117,7 @@ class GamesController extends Controller
             }
         }
 
-        return redirect()->back();
+        return $this->failed(trans('messages.system_error'));
     }
 
     protected function loginSBO($portfolio, $configs)
@@ -244,7 +244,8 @@ class GamesController extends Controller
     }
 
     function publisher() {
-        $result = Publisher::where('is_open', true)->langs()->get();
+        $publish_id = DB::table('game_lists')->select('publisher_id')->distinct()->pluck('publisher_id')->toArray();
+        $result = Publisher::where('is_open', true)->whereIn('id', $publish_id)->langs()->get();
         return $this->success(['data' => $result]);
     }
 }

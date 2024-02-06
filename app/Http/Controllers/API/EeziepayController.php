@@ -197,7 +197,7 @@ class EeziepayController extends Controller
                 . " - Từ: EeziePay - Mã ngân hàng: " . $history->bank_code
                 . " - số tiền: " . $history->receive_amount;
 
-            // $this->sendMessageToGroup($message);
+            app(ActivityService::class)->sendAlertTelegram($message);
 
             // check success status
             if ($status == EeziepayHistory::STATUS_BANK_SUCCESS) {

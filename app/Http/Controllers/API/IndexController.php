@@ -318,11 +318,6 @@ class IndexController extends MemberBaseController
         $tag = ($tag && $tag != 'all')? [$tag] : [];
 
         $mod = GameList::
-            // whereIn('api_name', Api::where('is_open',1)->cnLangs($this->getMemberLang())->pluck('api_name'))
-            // ->with('api:api_name,api_title')->when($request->get('api_code'),function($query) use($request){
-            //     $query->where('api_name',$request->get('api_code'));
-            // })
-            // ->
             when($request->get('isMobile'),function($query) use($request) {
                 $query->whichClientType($request->get('isMobile') ? 2 : 1);
             })
@@ -330,7 +325,6 @@ class IndexController extends MemberBaseController
                 $query->where('publisher_id', $request->get('publisher_id'));
             })
             ->where('game_type',$gameType)
-            // ->whereTags($tag)
             ->where('is_open',1)->orderBy('weight','desc');
 
         $data = $request->get('isMobile') ? $mod->get() : $mod->paginate($request->get('limit',15));

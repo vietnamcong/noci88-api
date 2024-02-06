@@ -1774,9 +1774,9 @@ return [
         ],
 
         'wheel_status' => [
-            1 => 'Để phát hành',
-            2 => 'Đã được phát hành',
-            3 => 'Phát trực tiếp'
+            1 => 'Đang chờ xác nhận',
+            2 => 'Nhận thưởng thành công',
+            3 => 'Nhận thưởng thất bại'
         ],
 
         'yuebao_settle_type' => [
@@ -1901,6 +1901,9 @@ return [
             'server_error' => 'Lỗi nội bộ máy chủ',
             'phone_not_exist' => 'Số điện thoại không tồn tại',
             'phone_existed' => 'Số điện thoại đã tồn tại',
+            'check_num_day' => 'Số lần quay trong ngày đã hết .',
+            'member_not_wheel'  => 'Không có giải thưởng phù hợp .',
+            'member_wheel' => 'Giải thưởng phù hợp .',
         ],
 
         'index' => [
@@ -2012,7 +2015,7 @@ return [
 
         'redbag' => [
             'not_open' => 'Chức năng này đã bị tắt',
-            'no_times' => 'Hôm nay, số lần cướp một phong bì màu đỏ đã lên đến giới hạn，Hãy quay lại vào ngày mai',
+            'no_times' => 'Hôm nay, số lần cướp lì xì màu đỏ đã lên đến giới hạn，Hãy quay lại vào ngày mai',
             'success' => 'Xin chúc mừng，Lấy số tiền :money Lì xì đỏ，Hãy kiểm tra sổ sách trong hồ sơ giao dịch'
         ],
 
@@ -2084,6 +2087,7 @@ return [
         ],
 
         'wheel' => [
+            'no_times' => 'Hôm nay, số lần quay đã lên đến giới hạn，Hãy quay lại vào ngày mai',
             'wheel_desc' => 'Tiết kiệm tối thiểu tại giải trí sands vào ngày đó :money Nhiều hơn，Và tổng số tiền đặt cược hiệu quả đáp ứng yêu cầu tối thiểu tiền gửi cho quà tặng :times Nhiều hơn và nhiều hơn，Sẽ nhận được số lượt may mắn，Và có cơ hội tiếp cận :award ，Không giới hạn，Nhanh chóng tham gia！'
         ],
 

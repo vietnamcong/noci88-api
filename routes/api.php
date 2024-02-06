@@ -153,6 +153,17 @@ Route::middleware(['refresh.member', 'jwt.auth', 'auth:api'])->group(function ()
     Route::patch('member/bank/{bank}', 'MemberController@member_bank_update');
     Route::delete('member/bank/{bank}', 'MemberController@member_bank_delete');
 
+    Route::get('member/wheel', 'MemberController@member_wheel');
+    Route::get('member/dailybonus_desc', 'MemberController@dailybonus_desc');
+    Route::get('member/wheels_bonus', 'MemberController@wheels_bonus');
+    Route::get('member/wheel_history', 'MemberController@wheel_history');
+    Route::get('member/wheel_awards', 'MemberController@wheel_awards');
+    Route::get('member/wheel_number', 'MemberController@wheel_number');
+
+    Route::post('member/redbag/activity', 'MemberController@get_redbag');
+    Route::post('member/redbag/log', 'MemberController@get_redbag_log');
+    Route::get('member/redbag/number', 'MemberController@get_redbag_number');
+
     Route::get('fs/levels', 'MemberController@vip1_fs_levels');
 
     Route::get('member/message/list', 'MemberController@message_list');
@@ -188,9 +199,6 @@ Route::middleware(['refresh.member', 'jwt.auth', 'auth:api'])->group(function ()
     Route::post('yuebao/buy', "MemberController@buy_plans");
     Route::post('yuebao/withdrawal', "MemberController@yuebao_drawing");
     Route::post('yuebao/history', 'MemberController@plans_history');
-
-    Route::post('activity/redbag', 'MemberController@get_redbag');
-    Route::post('redbag/log', 'MemberController@get_redbag_log');
 
     Route::post('dailybonus/check', 'MemberController@daily_bonus_check');
     Route::post('dailybonus/{mod}/award', 'MemberController@daily_bonus_award');
@@ -293,4 +301,16 @@ Route::prefix('eeziepay')->as('eeziepay.')->group(function () {
 
     Route::post('/redirect', ['uses' => 'EeziepayController@redirect'])->name('redirect');
     Route::post('/callback', ['uses' => 'EeziepayController@callback'])->name('callback');
+});
+// Card pay
+Route::prefix('card')->as('card.')->group(function () {
+    Route::get('/card_info', ['uses' => 'CardPayController@card_info'])->name('card_info');
+    Route::post('/confirm', ['uses' => 'CardPayController@confirm'])->name('confirm');
+    Route::post('/callback', ['uses' => 'CardPayController@callback'])->name('callback');
+});
+
+// SieuThiCode pay
+Route::prefix('sieuthicode')->as('sieuthicode.')->group(function () {
+    Route::get('/cron_bank', ['uses' => 'SieuThiCodeController@cron_bank'])->name('cron_bank');
+    Route::post('/qrcode/{id}', ['uses' => 'SieuThiCodeController@qrcode'])->name('qrcode');
 });

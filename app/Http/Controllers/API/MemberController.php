@@ -23,6 +23,7 @@ use App\Models\MemberBank;
 use App\Models\MemberMessage;
 use App\Models\MemberMoneyLog;
 use App\Models\MemberYuebaoPlan;
+use App\Models\MemberWheel;
 use App\Models\Message;
 use App\Models\Payment;
 use App\Models\Recharge;
@@ -32,6 +33,7 @@ use App\Models\Transfer;
 use App\Models\YuebaoPlan;
 use App\Models\MemberTask;
 use App\Models\EeziepayHistory;
+use App\Models\MemberWheelAward;
 use App\Services\ActivityService;
 use App\Services\AgentService;
 use App\Services\MemberService;
@@ -138,7 +140,7 @@ class MemberController extends MemberBaseController
     {
         $member = $this->getMember();
 
-        $data = Payment::where('is_open', 1)->whereIn('type', [Payment::TYPE_BANKPAY])->langs($member->lang)->get();
+        $data = Payment::where('is_open', 1)->whereIn('type', [Payment::TYPE_BANKPAY])->langs($member->lang)->orderBy('arrange', 'asc')->get();
 
         $data->transform(function ($item, $key) use ($member) {
             if ($item->type == Payment::TYPE_BANKPAY) {
@@ -147,11 +149,6 @@ class MemberController extends MemberBaseController
                 $temp['logo'] = Arr::get(Bank::getBank($item->params['bank_type']), 'logo', '');
                 $item->params = $temp;
             }
-            // else if ($item->type == Payment::TYPE_USDT && !is_array($item->usdt_type_text)) {
-            //     $temp = $item->params;
-            //     $temp['usdt_type_text'] = $item->usdt_type_text;
-            //     $item->params = $temp;
-            // }
             $item->remark_code = random_int(1000, 9999);
 
             return $item;
@@ -347,15 +344,6 @@ class MemberController extends MemberBaseController
         $data['payment_detail'] = json_encode(['payment_id' => $payment_id],JSON_UNESCAPED_UNICODE);
         $data['hk_at'] = Carbon::now();
 
-        // $url = '';
-        // try{
-        //      $url = app(ThirdPayService::class,['payment' => $payment])->prepareRequest($data);
-        //     // $url = "http://www.baidu.com";
-        //     // $data['money'] = $money;
-        //     $result = Recharge::create($data);
-        // }catch (Exception $e){
-        //     return $this->failed($e->getMessage());
-        // }
 
         $result = Recharge::create($data);
 
@@ -373,8 +361,8 @@ class MemberController extends MemberBaseController
             $paymentName = $payment->account;
         }
 
-        // $message = "[YÊU CẦU NẠP TIỀN] - tài khoản: " . $this->member->name . " [Nạp tiền]: " . $this->member->name . " từ: " . $payment->name . " - " . $payType . "-" . $paymentName . "- " . $payment->account . " - số tiền: " . $data['money'];
-        // app(ActivityService::class)->sendAlertTelegram($message);
+        $message = "[YÊU CẦU NẠP TIỀN] - tài khoản: " . $this->member->name . " [Nạp tiền]: " . $this->member->name . " từ: " . $payment->name . " - " . $payType . "-" . $paymentName . "- " . $payment->account . " - số tiền: " . $data['money'];
+        app(ActivityService::class)->sendAlertTelegram($message);
 
         //通过密钥和商户号进行支付，并返回支付网址
         return $this->success(['data' =>$result ],trans('res.api.recharge.pay_success'));
@@ -384,10 +372,8 @@ class MemberController extends MemberBaseController
     public function recharge(Request $request)
     {
         $this->member = $this->getMember();
-
         // 参数过滤
-        $data = $request->only(['name', 'money', 'payment_type', 'account', 'payment_desc', 'payment_pic', 'hk_at']);
-
+        $data = $request->only(['bill_no','name', 'money', 'payment_type', 'account', 'payment_desc', 'payment_pic', 'hk_at']);
         // 过滤空参数
         $data = array_filter($data, function ($temp) {
             return strlen($temp);
@@ -400,9 +386,9 @@ class MemberController extends MemberBaseController
         $data['hk_at'] = $value;
 
         $this->validateRequest($data, [
-            "name" => 'required',
+            // "name" => 'required',
             'money' => 'required|numeric|min:0|integer',
-            'account' => 'required',
+            // 'account' => 'required',
             'hk_at' => 'required|date',
             'payment_pic' => 'sometimes|url',
             "payment_type" => ['required', Rule::in(array_keys(config('platform.payment_type')))],
@@ -416,7 +402,6 @@ class MemberController extends MemberBaseController
             "payment_id" => 'required|exists:payments,id',
             "payment_account" => 'required',
             "payment_name" => 'sometimes|required',
-            // "remark_code" => 'required|numeric|min:1000|max:9999',
         ], [], $this->getLangAttribute('recharge'));
        
         $payment = Payment::find($payment_detail['payment_id']);
@@ -443,57 +428,50 @@ class MemberController extends MemberBaseController
         DB::beginTransaction();
         try {
             $data = array_filter_null($data);
-            $data['bill_no'] = getBillNo();
+            $data['bill_no'] = $request->get('bill_no', getBillNo());
             $data['member_id'] = $this->member->id;
             $data['payment_detail'] = json_encode($payment_detail, JSON_UNESCAPED_UNICODE);
             $data['lang'] = $this->member->lang;
+            $data['account'] = $request->get('account', '');
 
-            $recharge = Recharge::create($data);
+            if ($recharge = Recharge::create($data)) {
+                if ($payment->type == Payment::TYPE_USDT) {
+                    $payType = 'USDT';
+                    $paymentName = data_get($payment->params, 'usdt_type');
+                } elseif ($data['payment_type'] == Payment::TYPE_BANKPAY) {
+                    $payType = 'Bank';
+                    $paymentName = data_get($payment->params, 'bank_type');
+                } elseif ($data['payment_type'] == 'online_eeziepay') {
+                    $payType = 'Eeziepay';
+                    $paymentName = data_get($payment->params, 'bank_type');
+                } else {
+                    $payType = $data['payment_type'];
+                    $paymentName = data_get($payment->params, 'bank_type');
+                }
+    
+                $message = "[YÊU CẦU NẠP TIỀN] - tài khoản: " . $this->member->name . " [Nạp tiền]: " . $this->member->name . " từ: " . $payment_detail['payment_name'] . " - " . $payType . "-" . $paymentName . "- " . $payment_detail['payment_account'] . " - số tiền: " . $data['money'];
+                app(ActivityService::class)->sendAlertTelegram($message);
 
-            // create money log
-            MemberMoneyLog::create([
-                'member_id' => $recharge->member_id,
-                'money' => $recharge->money,
-                'money_before' => $recharge->before_money + $recharge->diff_money,
-                'money_after' => $recharge->before_money + $recharge->money + $recharge->diff_money,
-                'operate_type' => MemberMoneyLog::OPERATE_TYPE_RECHARGE_ACTIVITY,
-                'number_type' => MemberMoneyLog::MONEY_TYPE_ADD,
-                'user_id' => $recharge->user_id ?? 0,
-                'model_name' => get_class($recharge),
-                'model_id' => $recharge->id
-            ]);
+                 // create money log
+                MemberMoneyLog::create([
+                    'member_id' => $recharge->member_id,
+                    'money' => $recharge->money,
+                    'money_before' => $recharge->before_money + $recharge->diff_money,
+                    'money_after' => $recharge->before_money + $recharge->money + $recharge->diff_money,
+                    'operate_type' => MemberMoneyLog::OPERATE_TYPE_RECHARGE_ACTIVITY,
+                    'number_type' => MemberMoneyLog::MONEY_TYPE_ADD,
+                    'user_id' => $recharge->user_id ?? 0,
+                    'model_name' => get_class($recharge),
+                    'model_id' => $recharge->id
+                ]);
+            } 
 
             DB::commit();
-
             return $this->success(['data' => $data], trans('res.api.recharge.pay_normal_success'));
         } catch (Exception $exception) {
             writelog($exception);
             DB::rollBack();
         }
-
-        if ($result = Recharge::create($data)) {
-            if ($payment->type == Payment::TYPE_USDT) {
-                $payType = 'USDT';
-                $paymentName = $payment->params['usdt_type'];
-            } elseif ($data['payment_type'] == Payment::TYPE_BANKPAY) {
-                $payType = 'Bank';
-                $paymentName = $payment->params['bank_type'];
-            } elseif ($data['payment_type'] == 'online_eeziepay') {
-                $payType = 'Eeziepay';
-                $paymentName = $payment->params['bank_type'];
-            } else {
-                $payType = $data['payment_type'];
-                $paymentName = $payment->params['account_id'];
-            }
-
-            $message = "[YÊU CẦU NẠP TIỀN] - tài khoản: " . $this->member->name . " [Nạp tiền]: " . $this->member->name . " từ: " . $payment_detail['payment_name'] . " - " . $payType . "-" . $paymentName . "- " . $payment_detail['payment_account'] . " - số tiền: " . $data['money'];
-            app(ActivityService::class)->sendAlertTelegram($message);
-
-            return $this->success(['data' => $data], trans('res.api.recharge.pay_normal_success'));
-        } else {
-            return $this->failed(trans('res.api.recharge.pay_normal_fail'));
-        }
-
         return $this->failed(trans('res.api.recharge.pay_normal_fail'));
     }
 
@@ -663,7 +641,7 @@ class MemberController extends MemberBaseController
         }
 
 		$message = "[YÊU CẦU RÚT TIỀN] - tài khoản: ".$this->member->name." [Rút tiền về]: ".$data['name']." - Số TK: ".$data['account']." - Ngân hàng: ".$data['member_bank_text']." - số tiền: ".$data['money'];
-		// app(ActivityService::class)->sendAlertTelegram($message);
+		app(ActivityService::class)->sendAlertTelegram($message);
 
         return $this->success([],trans('res.api.drawing.drawing_success'));
 
@@ -1232,6 +1210,27 @@ class MemberController extends MemberBaseController
         }
     }
 
+    public function get_redbag_number(Request $request) {
+        $member = $this->getMember();
+        $times = $request->get('times') ? (int) $request->get('times') : 1;
+        $times = $times < 1 ? 1 : $times;
+
+        $config = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
+        if(!$config['is_redbag_open']) return $this->success(['data'=> 0]);
+        // 判断用户今日次数是否用完
+        $count = MemberMoneyLog::where('member_id',$member->id)
+        ->where('operate_type',MemberMoneyLog::OPERATE_TYPE_HONGBAO)
+        ->whereDate('created_at',Carbon::today())->count();
+
+        $can_times = $this->getRedbagTimes($member);
+            
+        if($count >= $can_times) return $this->success(['data'=> 0]);
+
+        $yet_times = $can_times - $count - $times;
+        $yet_times = $yet_times <= 0 ? $times - abs($yet_times) : $yet_times;
+
+        return $this->success(['data'=>$yet_times]);
+    }
 
     // 抢红包接口
     public function get_redbag(Request $request){
@@ -1249,9 +1248,10 @@ class MemberController extends MemberBaseController
             $count = MemberMoneyLog::where('member_id',$member->id)
                 ->where('operate_type',MemberMoneyLog::OPERATE_TYPE_HONGBAO)
                 ->whereDate('created_at',Carbon::today())->count();
-
+           
             // 根据当日存款金额和有效投注，获取可抢红包的次数
             $can_times = $this->getRedbagTimes($member);
+            
             if($count >= $can_times) return $this->failed(trans('res.api.redbag.no_times'));
 
             $red_config = $config['redbag_size_setting_json'] ? json_decode($config['redbag_size_setting_json'], true) : [];
@@ -1260,8 +1260,9 @@ class MemberController extends MemberBaseController
 
             $yet_times = $can_times - $count - $times;
             $yet_times = $yet_times <= 0 ? $times - abs($yet_times) : $yet_times;
+            
             if ($yet_times > 0) {
-                for ($i = 0; $i < $yet_times; $i++){
+                // for ($i = 0; $i < $yet_times; $i++){
                     $money = randomFloat($min_money,$max_money);
                     $money_type = 'fs_money';
                     if($config['activity_money_type']) $money_type = $config['activity_money_type'];
@@ -1275,21 +1276,23 @@ class MemberController extends MemberBaseController
                             'member_id' => $member->id,
                             'money' => $money,
                             'money_before' => $money_before,
-                            'money_after' => $member->$money_type,
+                            'money_after' => $member->money,
                             'number_type' => MemberMoneyLog::MONEY_TYPE_ADD,
                             'operate_type' => MemberMoneyLog::OPERATE_TYPE_HONGBAO,
                             'money_type' => $money_type,
                             'description' => '会员【'.$member->name.'】今日第【'.$count.'】次抢红包，红包金额为【'.$money.'元】'
                         ]);
                     });
-                }
+                // }
             }
 
         }catch(Exception $e){
             return $this->failed(trans('res.api.common.operate_fail').$e->getMessage());
         }
 
-        return $this->success([],trans('res.api.redbag.success',['money' => $money]));
+        return $this->success([
+            'data' => $money
+        ],trans('res.api.redbag.success',['money' => $money]));
     }
 
     public function get_redbag_log(Request $request)
@@ -1336,17 +1339,8 @@ class MemberController extends MemberBaseController
     }
 
     public function getRedbagTimes(Member $member){
-        $now = Carbon::now();
 
-        // 获取 今天的流水和充值记录
-        $save_amount = Recharge::where('member_id',$member->id)
-            ->whereDate('created_at',$now)
-            ->where('status',Recharge::STATUS_SUCCESS)->sum('money');
-
-        $total_valid_bet = GameRecord::whereDate('created_at',$now)
-            ->where('member_id',$member->id)
-            ->where('status','<>','X')
-            ->sum('validBetAmount');
+        $save_amount = $this->getChangeMoneyNow($member);
 
         $json = \systemconfig('redbag_setting_json',Base::LANG_COMMON);
         $config = json_decode($json,1);
@@ -1354,12 +1348,29 @@ class MemberController extends MemberBaseController
         if(count($config) == 0) return 0;
 
         $times = 0;
+        
         foreach ($config as $item){
-            if($save_amount >= $item['deposit'] && $total_valid_bet >= $item['deposit'] * $item['valid_num'])
+            if($save_amount >= $item['deposit'])
                 $times = max($times,$item['times']);
         }
-
         return $times;
+    }
+
+    public function getChangeMoneyNow(Member $member) {
+        $startMonth = Carbon::now()->startOfMonth();
+        $endMonth = Carbon::now()->endOfMonth();
+        
+        $recharge_amount = Recharge::where('member_id',$member->id)
+            ->whereBetween('created_at',[$startMonth, $endMonth])
+            ->where('status',Recharge::STATUS_SUCCESS)->sum('money');
+    
+        $drawing_amount = Drawing::where('member_id',$member->id)
+            ->whereBetween('created_at',[$startMonth, $endMonth])
+            ->where('status',Drawing::STATUS_SUCCESS)->sum('money');
+
+        
+        $save_amount = $recharge_amount - $drawing_amount;
+        return $save_amount;
     }
 
     // 签到接口
@@ -1421,7 +1432,7 @@ class MemberController extends MemberBaseController
     }
 
     // 签到领奖
-    public function daily_bonus_award(DailyBonus $mod,Request $request){
+    public function daily_bonus_award(Request $request,DailyBonus $mod){
         // 检查是否符合要求
         if(!$mod->isSetting()){
             return $this->failed(trans('res.api.common.operate_forbidden'));
@@ -2884,5 +2895,188 @@ class MemberController extends MemberBaseController
         }
 
         return $this->failed(trans('res.system_error'));
+    }
+
+    public function reward_wheel() {
+        $member = $this->getMember();
+        
+        $money_now = Recharge::where('member_id',$member->id)
+        ->whereBetween('created_at',[Carbon::now()->startOfDay(),Carbon::now()->endOfDay()])
+        ->where('status',Recharge::STATUS_SUCCESS)->sum('money');
+
+        $lang = $member->lang;
+
+        $data = systemconfig('wheels_setting_json');
+        
+        $index = null;
+        $member_data = null;
+        $money_before = 0;
+        
+        if($data){
+            $data = json_decode($data,1);
+            $data = $data[$lang] ?? [];
+            
+            foreach ($data as $key => $value) {
+                if($value['deposit'] <= $money_now &&  $value['deposit'] >= $money_before){
+                    $money_before = $value['deposit'];
+                    $index = $key;
+                }
+            } 
+            if($index !== null){
+                $member_data = $data[$index];
+                $award_text = [];
+                $awards = explode(",", data_get($member_data,'awards'));
+                foreach ($awards as $k => $v) {
+                    $wheel_award = MemberWheelAward::find($v);
+                    array_push($award_text, $wheel_award);
+                }
+                $member_data['award_data'] = $award_text;
+                return $member_data;
+            }
+        } else{
+            $member_data = [];
+        }
+        return $member_data;
+    }
+
+    public function member_wheel(Request $request)  {
+        $data = $this->reward_wheel();
+        if($data ==  null){
+            $message = trans('res.api.common.member_not_wheel');
+        }else{
+            $message = trans('res.api.common.member_wheel');
+        }
+        return $this->success(['data' => $data, 'message' => $message]); 
+    }
+
+    public function wheel_number(Request $request) {
+        $member = $this->getMember();
+        $times = $request->get('times') ? (int) $request->get('times') : 1;
+        $times = $times < 1 ? 1 : $times;
+
+        $count = MemberWheel::query()->where('member_id',$member->id)->whereDate('created_at',Carbon::today())->count();
+        $can_times = $this->getWheelTimes($member);
+        
+        if($count >= $can_times) return $this->success(['data'=> 0]);
+        $yet_times = $can_times - $count - $times;
+        $yet_times = $yet_times <= 0 ? $times - abs($yet_times) : $yet_times;
+
+        return $this->success(['data' => $yet_times]); 
+    }
+
+    public function wheels_bonus(Request $request) {
+        $member = $this->getMember();
+        $times = $request->get('times') ? (int) $request->get('times') : 1;
+        $times = $times < 1 ? 1 : $times;
+        $config = SystemConfig::getConfigGroup('basic',Base::LANG_COMMON);
+        
+        $count = MemberWheel::query()->where('member_id',$member->id)->whereDate('created_at',Carbon::today())->count();
+        $can_times = $this->getWheelTimes($member);
+        
+        if($count >= $can_times) return $this->failed(trans('res.api.wheel.no_times'));
+
+        $wheel_config = $config['wheels_setting_json'] ? json_decode($config['wheels_setting_json'], true) : [];
+
+        $yet_times = $can_times - $count - $times;
+        $yet_times = $yet_times <= 0 ? $times - abs($yet_times) : $yet_times;
+        if ($yet_times > 0) {
+            $data = $this->reward_wheel();
+            $awards = explode(",",$data['awards']);
+            $key = array_rand($awards);
+            $staus = MemberWheel::STATUS_UNDEAL;
+            try {
+                $wheel_award =  MemberWheelAward::find($awards[$key]);
+            
+                if( $wheel_award->type == MemberWheelAward::STATUS_MONEY){
+                    DB::transaction(function() use($member, $awards, $key, $wheel_award){
+                        $money_type = 'fs_money';
+                        $money =  $wheel_award->money; 
+                        $money_before = $member->$money_type;
+                        
+                        $memberObj = app(Member::class)->find($member->id);
+                        $beforeMoney = $member->money;
+                        $memberObj->money = $member->money + $money;
+                        $memberObj->save();
+
+                        MemberMoneyLog::create([
+                            'member_id' => $member->id,
+                            'money' => $money,
+                            'money_before' => $money_before,
+                            'money_after' => $member->money,
+                            'number_type' => MemberMoneyLog::MONEY_TYPE_ADD,
+                            'operate_type' => MemberMoneyLog::OPERATE_TYPE_WHEEL,
+                            'money_type' => $money_type,
+                            'description' => 'Thành viên【'.$member->name.'】đã quay trúng【'.$money.'】'
+                        ]);
+                    });
+                    $staus =  MemberWheel::STATUS_SUCCESS;
+                }
+                $data = [
+                    'member_id'     => $member->id,
+                    'award_id'      => $wheel_award->id,
+                    'award_desc'    => $wheel_award,
+                    'status'        => $staus,
+                ];
+                
+                MemberWheel::create($data);
+		
+                return $this->success(
+                    [
+                        'data' =>  $data
+                    ]
+                ); 
+                
+            } catch (Exception $exception) {
+                writelog($exception);
+            }
+        }
+    }
+
+    public function wheel_history(Request $request) {
+        $limit = $request->limit || 10;
+        $member = $this->getMember();
+        $member_wheel = MemberWheel::query()->where('member_id',$member->id)->paginate($limit);
+        return $this->success(
+            [
+                'data' => $member_wheel
+            ]
+        ); 
+    }
+
+    public function wheel_awards() {
+        $member = $this->getMember();
+        $wheel_awards = MemberWheelAward::where('is_open', true)->langs()->get();
+        return $this->success(
+            [
+                'data' => $wheel_awards
+            ]
+        );  
+    }
+
+    public function getWheelTimes(Member $member){
+        $save_amount =  $this->getChangeMoneyNow($member);
+        
+        $json = \systemconfig('wheels_setting_json',Base::LANG_COMMON);
+        $config = json_decode($json,1);
+        $config = $config[$member->lang] ?? [];
+        if(count($config) == 0) return 0;
+        $times = 0;
+        foreach ($config as $item){
+            if($save_amount >= $item['deposit'])
+                $times = max($times,$item['times']);
+        }
+        return $times;
+    }
+
+    public function dailybonus_desc(Request $request) {
+        $lang = $request->get('lang') ?: 'zh_cn';
+        $data = \systemconfig('wheels_setting_json');
+        if($data) {
+            $data = json_decode($data,1);
+            $data = $data[$lang] ?? [];
+        } else {
+            $data = [];
+        }
+        return $this->success(['data' => $data]); 
     }
 }

@@ -340,23 +340,9 @@ return [
     ],
     
     // Pay Spec
-    'pay_spec' => [
-        'url'       => 'https://payspec/API/send',
-        'card_url'  => 'https://payspec.club/chargingws/v2',
-        'key'       => env('PAY_SPEC_KEY'),
-        'type'      => [
-            'momo'  => 'Momo',
-            'bank'  => 'Bank'
-        ],
-        'card_type' => [
-            'Viettel'       => 'Viettel',
-            'Mobifone'      => 'Mobifone',
-            'Vinaphone'     => 'Vinaphone',
-            'Zing'          => 'Zing',
-            'Vietnamobile'  => 'Vietnamobile',
-            'Vcoin'         => 'Vcoin',
-            'Gate'          => 'Gate',
-        ]
+    'card_pay' => [
+        'url'  => 'https://thesieutoc.net/chargingws/v2',
+        'key'       => env('CARD_PAY_KEY'),
     ],
     // banking logo
     'bank_logo' => [
