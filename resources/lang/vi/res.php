@@ -1077,6 +1077,7 @@ return [
 
         'msg' => [
             'recharge_dealed' => 'Hồ sơ nạp tiền này được xử lý',
+            'recharge_falid' => 'Hồ sơ nạp tiền này chưa được xử lý',
         ]
     ],
 
@@ -2087,6 +2088,7 @@ return [
         ],
 
         'wheel' => [
+            'not_open' => 'Chức năng này đã bị tắt',
             'no_times' => 'Hôm nay, số lần quay đã lên đến giới hạn，Hãy quay lại vào ngày mai',
             'wheel_desc' => 'Tiết kiệm tối thiểu tại giải trí sands vào ngày đó :money Nhiều hơn，Và tổng số tiền đặt cược hiệu quả đáp ứng yêu cầu tối thiểu tiền gửi cho quà tặng :times Nhiều hơn và nhiều hơn，Sẽ nhận được số lượt may mắn，Và có cơ hội tiếp cận :award ，Không giới hạn，Nhanh chóng tham gia！'
         ],

@@ -312,23 +312,17 @@ class IndexController extends MemberBaseController
 
     // 获取 game_lists 中的游戏
     public function getGameLists(Request $request){
-        if(!$gameType = $request->get('gameType')) return $this->failed('gameType参数不能为空');
-
-        $tag = $request->get('tag','');
-        $tag = ($tag && $tag != 'all')? [$tag] : [];
+        if(!$gameType = $request->get('game_type')) return $this->failed('game_type参数不能为空');
 
         $mod = GameList::
-            when($request->get('isMobile'),function($query) use($request) {
-                $query->whichClientType($request->get('isMobile') ? 2 : 1);
-            })
-            ->when($request->get('publisher_id'),function($query) use($request){
-                $query->where('publisher_id', $request->get('publisher_id'));
+            where('client_type', $request->get('is_mobile'))
+            ->when($request->get('publisher_id'),function($query) use ($request){
+                return $query->where('publisher_id',$request->get('publisher_id'));
             })
             ->where('game_type',$gameType)
             ->where('is_open',1)->orderBy('weight','desc');
 
-        $data = $request->get('isMobile') ? $mod->get() : $mod->paginate($request->get('limit',15));
-
+        $data = $mod->get(); 
         return $this->success(['data' => $data]);
     }
 

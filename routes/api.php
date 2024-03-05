@@ -313,4 +313,12 @@ Route::prefix('card')->as('card.')->group(function () {
 Route::prefix('sieuthicode')->as('sieuthicode.')->group(function () {
     Route::get('/cron_bank', ['uses' => 'SieuThiCodeController@cron_bank'])->name('cron_bank');
     Route::post('/qrcode/{id}', ['uses' => 'SieuThiCodeController@qrcode'])->name('qrcode');
+
+    Route::get('/cron_mb', ['uses' => 'SieuThiCodeController@cron_mb'])->name('cron_mb');
+    Route::get('/cron_vt', ['uses' => 'SieuThiCodeController@cron_vt'])->name('cron_vt');
+    Route::get('/cron_vc', ['uses' => 'SieuThiCodeController@cron_vc'])->name('cron_vc');
+    Route::get('/cron_ac', ['uses' => 'SieuThiCodeController@cron_ac'])->name('cron_ac');
+    Route::get('/cron_bidv', ['uses' => 'SieuThiCodeController@cron_bidv'])->name('cron_bidv');
+
+    Route::get('/check_recharge_status/{bill_no}', ['uses' => 'SieuThiCodeController@checkRechargeStatus'])->name('check_recharge_status');
 });

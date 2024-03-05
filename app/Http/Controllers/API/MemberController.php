@@ -1211,16 +1211,28 @@ class MemberController extends MemberBaseController
     }
 
     public function get_redbag_number(Request $request) {
+        $startMonth = Carbon::now()->startOfMonth();
+        $endMonth = Carbon::now()->endOfMonth();
+
         $member = $this->getMember();
         $times = $request->get('times') ? (int) $request->get('times') : 1;
         $times = $times < 1 ? 1 : $times;
 
         $config = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
+
+        if($config['7_days_calculate_reward']){
+            $startMonth = Carbon::now()->subDays(7)->format('Y-m-d 00:00:00');
+            $endMonth = Carbon::now()->format('Y-m-d 23:59:59');
+        }
+
         if(!$config['is_redbag_open']) return $this->success(['data'=> 0]);
         // 判断用户今日次数是否用完
+
+        // 判断用户今日次数是否用完
         $count = MemberMoneyLog::where('member_id',$member->id)
+        ->whereBetween('created_at',[$startMonth, $endMonth])
         ->where('operate_type',MemberMoneyLog::OPERATE_TYPE_HONGBAO)
-        ->whereDate('created_at',Carbon::today())->count();
+        ->count();
 
         $can_times = $this->getRedbagTimes($member);
             
@@ -1234,20 +1246,27 @@ class MemberController extends MemberBaseController
 
     // 抢红包接口
     public function get_redbag(Request $request){
+        $startMonth = Carbon::now()->startOfMonth();
+        $endMonth = Carbon::now()->endOfMonth();
+        // 获取红包的最大值和最小值，取随机数
+        $config = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
+        if($config['7_days_calculate_reward']){
+            $startMonth = Carbon::now()->subDays(7)->format('Y-m-d 00:00:00');
+            $endMonth = Carbon::now()->format('Y-m-d 23:59:59');
+        }
+
         $member = $this->getMember();
         $times = $request->get('times') ? (int) $request->get('times') : 1;
         $times = $times < 1 ? 1 : $times;
-
         try{
-            // 获取红包的最大值和最小值，取随机数
-            $config = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
 
             if(!$config['is_redbag_open']) return $this->failed(trans('res.api.redbag.not_open'));
 
             // 判断用户今日次数是否用完
             $count = MemberMoneyLog::where('member_id',$member->id)
+                ->whereBetween('created_at',[$startMonth, $endMonth])
                 ->where('operate_type',MemberMoneyLog::OPERATE_TYPE_HONGBAO)
-                ->whereDate('created_at',Carbon::today())->count();
+                ->count();
            
             // 根据当日存款金额和有效投注，获取可抢红包的次数
             $can_times = $this->getRedbagTimes($member);
@@ -1357,6 +1376,11 @@ class MemberController extends MemberBaseController
     }
 
     public function getChangeMoneyNow(Member $member) {
+        $config = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
+        if($config['7_days_calculate_reward']){
+            $startMonth = Carbon::now()->subDays(7)->format('Y-m-d 00:00:00');
+            $endMonth = Carbon::now()->format('Y-m-d 23:59:59');
+        }
         $startMonth = Carbon::now()->startOfMonth();
         $endMonth = Carbon::now()->endOfMonth();
         
@@ -1368,7 +1392,6 @@ class MemberController extends MemberBaseController
             ->whereBetween('created_at',[$startMonth, $endMonth])
             ->where('status',Drawing::STATUS_SUCCESS)->sum('money');
 
-        
         $save_amount = $recharge_amount - $drawing_amount;
         return $save_amount;
     }
@@ -2900,9 +2923,7 @@ class MemberController extends MemberBaseController
     public function reward_wheel() {
         $member = $this->getMember();
         
-        $money_now = Recharge::where('member_id',$member->id)
-        ->whereBetween('created_at',[Carbon::now()->startOfDay(),Carbon::now()->endOfDay()])
-        ->where('status',Recharge::STATUS_SUCCESS)->sum('money');
+        $money_now = $this->getChangeMoneyNow($member);
 
         $lang = $member->lang;
 
@@ -2950,11 +2971,25 @@ class MemberController extends MemberBaseController
     }
 
     public function wheel_number(Request $request) {
+        $startMonth = Carbon::now()->startOfMonth();
+        $endMonth = Carbon::now()->endOfMonth();
+
         $member = $this->getMember();
         $times = $request->get('times') ? (int) $request->get('times') : 1;
         $times = $times < 1 ? 1 : $times;
 
-        $count = MemberWheel::query()->where('member_id',$member->id)->whereDate('created_at',Carbon::today())->count();
+        $config_activity = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
+
+        if($config_activity['7_days_calculate_reward']){
+            $startMonth = Carbon::now()->subDays(7)->format('Y-m-d 00:00:00');
+            $endMonth = Carbon::now()->format('Y-m-d 23:59:59');
+        }
+        
+        $count = MemberMoneyLog::where('member_id',$member->id)
+        ->whereBetween('created_at',[$startMonth, $endMonth])
+        ->where('operate_type',MemberMoneyLog::OPERATE_TYPE_WHEEL)
+        ->count();
+
         $can_times = $this->getWheelTimes($member);
         
         if($count >= $can_times) return $this->success(['data'=> 0]);
@@ -2965,12 +3000,32 @@ class MemberController extends MemberBaseController
     }
 
     public function wheels_bonus(Request $request) {
+        $startMonth = Carbon::now()->startOfMonth();
+        $endMonth = Carbon::now()->endOfMonth();
+
+        $config_activity = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
+
+        if($config_activity['7_days_calculate_reward']){
+            $startMonth = Carbon::now()->subDays(7)->format('Y-m-d 00:00:00');
+            $endMonth = Carbon::now()->format('Y-m-d 23:59:59');
+        }
+        // 获取红包的最大值和最小值，取随机数
+       
+        if(!$config_activity['activity_wheel_is_open']) return $this->failed(trans('res.api.wheel.not_open'));
+
         $member = $this->getMember();
         $times = $request->get('times') ? (int) $request->get('times') : 1;
         $times = $times < 1 ? 1 : $times;
         $config = SystemConfig::getConfigGroup('basic',Base::LANG_COMMON);
+
+        // $count = MemberWheel::query()->where('member_id',$member->id)->whereDate('created_at',Carbon::today())->count();
         
-        $count = MemberWheel::query()->where('member_id',$member->id)->whereDate('created_at',Carbon::today())->count();
+        // 判断用户今日次数是否用完
+        $count = MemberMoneyLog::where('member_id',$member->id)
+        ->whereBetween('created_at',[$startMonth, $endMonth])
+        ->where('operate_type',MemberMoneyLog::OPERATE_TYPE_WHEEL)
+        ->count();
+
         $can_times = $this->getWheelTimes($member);
         
         if($count >= $can_times) return $this->failed(trans('res.api.wheel.no_times'));

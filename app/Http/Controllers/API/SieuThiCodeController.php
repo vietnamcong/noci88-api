@@ -16,136 +16,196 @@ use Illuminate\Http\Request;
 
 class SieuThiCodeController extends Controller
 {
-    protected $mb_url = 'historyapimbbank';
-    protected $vt_url = 'historyapiviettin';
-    protected $vc_url = 'historyapivcb';
-    protected $ac_url = 'historyapiacb';
-    protected $bidv_url = 'historyapibidv';
+    protected $mb_url = 'historymbbank';  // historyapimbbank
+    protected $vt_url = 'historyviettin';  // historyapiviettin
+    protected $vc_url = 'historyvietcombank';  // historyapivcb
+    protected $ac_url = 'historyacb'; // historyapiacb
+    protected $bidv_url = 'historybidv';  // historyapibidv
+
+    protected $bank_mb  = 'MB';
+    protected $bank_vt  = 'VT';
+    protected $bank_vc  = 'VC';
+    protected $bank_ac  = 'AC';
+    protected $bank_bidv  = 'BIDV';
 
     public function cron_bank() {
-        $payment = Payment::where('is_open', 1)->whereNotNull('callback_url')->get();
+        $this->cron_mb();
+        $this->cron_vc();
+        $this->cron_ac();
+        $this->cron_bidv();
+        $this->setStatusCode(200);
+        return $this->success([
+            'data' => 'Call Bank Cron Success V New!'
+        ]);  
+    }
+    // CRON MB
+    public function cron_mb() {
+        $payment = Payment::where('is_open', 1)->whereNotNull('callback_url')
+        ->where('callback_url', 'like', '%' . $this->mb_url . '%')->get();
+
         foreach ($payment as $key => $value) {
             if($value->callback_url != null){
-               $this->history($value->callback_url);
+               $this->history($value->callback_url, $this->bank_mb);
             }
         }
         return $this->success([
-            'data' => 'Call Bank Cron Success V17 !'
-        ]);  
+            'data' => 'Call Bank Cron MB Success !'
+        ]);
+    }
+    // CRON VT
+    public function cron_vt() {
+        $payment = Payment::where('is_open', 1)->whereNotNull('callback_url')
+        ->where('callback_url', 'like', '%' . $this->vt_url . '%')->get();
+
+        foreach ($payment as $key => $value) {
+            if($value->callback_url != null){
+               $this->history($value->callback_url, $this->bank_vt);
+            }
+        }
+        return $this->success([
+            'data' => 'Call Bank Cron VT Success !'
+        ]);
+    }
+    // CRON VC
+    public function cron_vc() {
+        $payment = Payment::where('is_open', 1)->whereNotNull('callback_url')
+        ->where('callback_url', 'like', '%' . $this->vc_url . '%')->get();
+
+        foreach ($payment as $key => $value) {
+            if($value->callback_url != null){
+               $this->history($value->callback_url, $this->bank_vc);
+            }
+        }
+        return $this->success([
+            'data' => 'Call Bank Cron VC Success !'
+        ]);
+    }
+    // CRON AC
+    public function cron_ac() {
+        $payment = Payment::where('is_open', 1)->whereNotNull('callback_url')
+        ->where('callback_url', 'like', '%' . $this->ac_url . '%')->get();
+
+        foreach ($payment as $key => $value) {
+            if($value->callback_url != null){
+                $this->history($value->callback_url, $this->bank_ac);
+            }
+        }
+        return $this->success([
+            'data' => 'Call Bank Cron AC Success !'
+        ]);
+    }
+    // CRON BIDV
+    public function cron_bidv() {
+        $payment = Payment::where('is_open', 1)->whereNotNull('callback_url')
+        ->where('callback_url', 'like', '%' . $this->bidv_url . '%')->get();
+
+        foreach ($payment as $key => $value) {
+            if($value->callback_url != null){
+            $this->history($value->callback_url, $this->bank_bidv);
+            }
+        }
+        return $this->success([
+            'data' => 'Call Bank Cron BIDV Success !'
+        ]);
     }
 
-    public function history($url) {
+    // COMMONT
+    public function history($url, $bank = null) {
         $ch = curl_init($url);
 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         $response = curl_exec($ch);
         curl_close($ch);
-        
-        $tranList = $this->checkResponse($url, json_decode($response));
 
-        foreach ($tranList as $key => $value) {
-            $member_name = data_get($value, 'member_name');
-            $bill_no = data_get($value, 'bill_no');
-            if($member_name != null && $bill_no != null){
-                writelog('member_name : '. $member_name);
-                writelog('bill_no : '. $bill_no);
-                $this->changeMoney($bill_no, $member_name, $value);
+        $tranList = $this->checkResponse($url, json_decode($response), $bank);
+        $recharges = $this->rechargeList();
+        
+        if($tranList != null && count($tranList) > 0){
+            if($tranList != null){
+                foreach ($tranList as $key => $value) {
+                    foreach ($recharges as $k => $val) {
+                        if($bank == $this->bank_mb){
+                            if( (strpos(data_get($value, 'description'), $val->bill_no) >= 0 || strpos(data_get($value, 'description'),strtoupper($val->bill_no)) >= 0 ) && data_get($value, 'creditAmount') / 1000 == $val->money){
+                                writelog('bill_no : '. $val->bill_no);
+                                $data = [
+                                    'account' => data_get($value, 'accountNo'),
+                                    'credit_amount' => data_get($value, 'creditAmount'),
+                                ];
+                                $this->changeMoney($val->bill_no, $val->member_id, $data);
+                            }
+                        }
+                        if($bank == $this->bank_vt){
+                            if( (strpos(data_get($value, 'remark'), $val->bill_no) >= 0 || strpos(data_get($value, 'remark'),strtoupper($val->bill_no)) >= 0 ) && data_get($value, 'amount') / 1000 == $val->money){
+                                writelog('bill_no : '. $val->bill_no);
+                                $data = [
+                                    'account' => data_get($value, 'corresponsiveAccount'),
+                                    'credit_amount' => data_get($value, 'amount'),
+                                ];
+                                $this->changeMoney($val->bill_no, $val->member_id, $data);
+                            }
+                        }
+                        if($bank == $this->bank_vc){
+                            if( (strpos(data_get($value, 'Description'), $val->bill_no) >= 0 || strpos(data_get($value, 'Description'),strtoupper($val->bill_no)) >= 0 ) && str_replace(",","" ,data_get($value, 'amount')) / 1000 == $val->money){
+                                writelog('bill_no : '. $val->bill_no);
+                                $data = [
+                                    'credit_amount' => str_replace(",","" ,data_get($value, 'amount')),
+                                ];
+                                $this->changeMoney($val->bill_no, $val->member_id, $data);
+                            }
+                        }
+                        if($bank == $this->bank_ac){
+                            if( (strpos(data_get($value, 'description'), $val->bill_no) >= 0 || strpos(data_get($value, 'description'),strtoupper($val->bill_no)) >= 0 ) && data_get($value, 'amount') / 1000 == $val->money){
+                                writelog('bill_no : '. $val->bill_no);
+                                $data = [
+                                    'credit_amount' => data_get($value, 'amount'),
+                                ];
+                                $this->changeMoney($val->bill_no, $val->member_id, $data);
+                            }
+                        }
+                        if($bank == $this->bank_bidv){
+                            if( (strpos(data_get($value, 'txnRemark'), $val->bill_no) >= 0 || strpos(data_get($value, 'txnRemark'),strtoupper($val->bill_no)) >= 0 ) && data_get($value, 'amount') / 1000 == $val->money){
+                                writelog('bill_no : '. $val->bill_no);
+                                $data = [
+                                    'credit_amount' => data_get($value, 'amount'),
+                                ];
+                                $this->changeMoney($val->bill_no, $val->member_id, $data);
+                            }
+                        }
+                    }
+                }
             }
+        }else{
+            var_dump($tranList);
         }
+        
     }
     
-    public function checkResponse($url, $response) {
-        $data = [];
-        $type = null;
+    public function rechargeList() {
+        $recharges = Recharge::where('status', Recharge::STATUS_UNDEAL)->get();
+        return $recharges;
+    }
 
-        if(count(explode('/', $url)) > 3){
-            $type = explode('/', $url)[3];
-            if($type == $this->mb_url){
-                $result = data_get($response, 'TranList');
-                if($result != null){
-                    foreach ($result as $key => $value) {
-                        $array = explode(" ", data_get($value, 'description'));
-        
-                        $item['account'] = data_get($value, 'accountNo');
-                        $item['credit_amount'] = data_get($value, 'creditAmount');
-                        if(count($array) > 3){
-                            $item['member_name'] = $array[1];
-                            $item['bill_no'] = $array[2];
-                        }
-                        array_push($data, $item);
-                    }
-                }
-            }
-            if($type == $this->vt_url){
-                $result = data_get($response, 'transactions');
-                if($result != null){
-                    foreach ($result as $key => $value) {
-                        $array = explode(" ", data_get($value, 'remark'));
-    
-                        $item['account'] = data_get($value, 'corresponsiveAccount');
-                        $item['account_name'] = data_get($value, 'corresponsiveName');
-                        $item['credit_amount'] = data_get($value, 'amount');
-                        if(count($array) > 4){
-                            $item['member_name'] = $array[2];
-                            $item['bill_no'] = $array[3];
-                        }
-                        array_push($data, $item);
-                    }
-                }
-            }
-            if($type == $this->vc_url){
-                $result = data_get($response, 'transactions');
-                
-                if($result != null){
-                    foreach ($result as $key => $value) {
-                        $array = explode(" ", data_get($value, 'Remark'));
-    
-                        $item['credit_amount'] = data_get($value, 'Amount');
-    
-                        if(count($array) > 2){
-                            $item['member_name'] = $array[2];
-                            $item['bill_no'] = $array[3];
-                        }
-                        array_push($data, $item);
-                    }
-                }
-            }
-            if($type == $this->ac_url){
-                $result = data_get($response, 'data');
-                if($result != null){
-                    foreach ($result as $key => $value) {
-                        $array = explode(" ", data_get($value, 'description'));
-    
-                        $item['account'] = data_get($value, 'account');
-                        $item['account_name'] = data_get($value, 'accountName');
-                        $item['credit_amount'] = data_get($value, 'amount');
-                        if(count($array) > 4){
-                            $item['member_name'] = $array[2];
-                            $item['bill_no'] = $array[3];
-                        }
-                        array_push($data, $item);
-                    }
-                }
-            }
-            if($type == $this->bidv_url){
-                $result = data_get($response, 'txnList');
-                if($result != null){
-                    foreach ($result as $key => $value) {
-                        $array = explode(" ", data_get($value, 'txnRemark'));
-    
-                        $item['credit_amount'] = data_get($value, 'amount');
-                        if(count($array) > 5){
-                            $item['member_name'] = $array[4];
-
-                            $item['bill_no'] = $array[5];
-                        }
-                        array_push($data, $item);
-                    }
-                }
-            }
+    public function checkResponse($url, $response, $bank = null) {
+        if($bank == $this->bank_mb){
+            return data_get($response, 'TranList');
         }
-        return $data;
+
+        if($bank == $this->bank_vt){
+            return data_get($response, 'transactions');
+        }
+
+        if($bank == $this->bank_vc){
+            return data_get($response, 'transactions');
+        }
+
+        if($bank == $this->bank_ac){
+            return data_get($response, 'data');
+        }
+
+        if($bank == $this->bank_bidv){
+            return data_get($response, 'txnList');
+        }
     }
 
     public function qrcode(Request $request, $id) {
@@ -195,8 +255,8 @@ class SieuThiCodeController extends Controller
     }
 
     // 通过充值验证
-    public function changeMoney($bill_no,$member_name, $data){
-        $member = Member::where('name', $member_name)->first();
+    public function changeMoney($bill_no, $member_id, $data){
+        $member = Member::where('id', $member_id)->first();
         $recharge = Recharge::where('bill_no', $bill_no)->first();
         
         $data = [];
@@ -258,5 +318,24 @@ class SieuThiCodeController extends Controller
             return $this->failed(trans('res.base.update_fail').$e->getMessage());
         }
         return $this->success(['close_reload' => true], trans('res.base.update_success'));
+    }
+
+    public function checkRechargeStatus($bill_no) {
+        $recharge = Recharge::where('bill_no', $bill_no)->first();
+        if($recharge == null){
+            return $this->failed(trans('res.base.operate_fail'));
+        }else{
+            if($recharge->status != Recharge::STATUS_UNDEAL) {
+                return $this->success([
+                    'data' => $recharge,
+                    'message'=>trans('res.recharge.msg.recharge_dealed')
+                ]); 
+            }else{
+                return $this->success([
+                    'data' => $recharge,
+                    'message'=>trans('res.recharge.msg.recharge_falid')
+                ]); 
+            }
+        }
     }
 }
