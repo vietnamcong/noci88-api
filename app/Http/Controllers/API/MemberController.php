@@ -1211,8 +1211,8 @@ class MemberController extends MemberBaseController
     }
 
     public function get_redbag_number(Request $request) {
-        $startMonth = Carbon::now()->startOfMonth();
-        $endMonth = Carbon::now()->endOfMonth();
+        $startMonth = Carbon::now()->startOfMonth()->format('Y-m-d 00:00:00');
+        $endMonth = Carbon::now()->endOfMonth()->format('Y-m-d 00:00:00');
 
         $member = $this->getMember();
         $times = $request->get('times') ? (int) $request->get('times') : 1;
@@ -1221,8 +1221,8 @@ class MemberController extends MemberBaseController
         $config = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
 
         if($config['7_days_calculate_reward']){
-            $startMonth = Carbon::now()->subDays(7)->format('Y-m-d 00:00:00');
-            $endMonth = Carbon::now()->format('Y-m-d 23:59:59');
+            $startMonth = Carbon::now()->startOfWeek()->format('Y-m-d 00:00:00');
+            $endMonth = Carbon::now()->endOfWeek()->format('Y-m-d 00:00:00');
         }
 
         if(!$config['is_redbag_open']) return $this->success(['data'=> 0]);
@@ -1246,13 +1246,13 @@ class MemberController extends MemberBaseController
 
     // 抢红包接口
     public function get_redbag(Request $request){
-        $startMonth = Carbon::now()->startOfMonth();
-        $endMonth = Carbon::now()->endOfMonth();
+        $startMonth = Carbon::now()->startOfMonth()->format('Y-m-d 00:00:00');
+        $endMonth = Carbon::now()->endOfMonth()->format('Y-m-d 00:00:00');
         // 获取红包的最大值和最小值，取随机数
         $config = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
         if($config['7_days_calculate_reward']){
-            $startMonth = Carbon::now()->subDays(7)->format('Y-m-d 00:00:00');
-            $endMonth = Carbon::now()->format('Y-m-d 23:59:59');
+            $startMonth = Carbon::now()->startOfWeek()->format('Y-m-d 00:00:00');
+            $endMonth = Carbon::now()->endOfWeek()->format('Y-m-d 00:00:00');
         }
 
         $member = $this->getMember();
@@ -1377,13 +1377,15 @@ class MemberController extends MemberBaseController
 
     public function getChangeMoneyNow(Member $member) {
         $config = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
-        if($config['7_days_calculate_reward']){
-            $startMonth = Carbon::now()->subDays(7)->format('Y-m-d 00:00:00');
-            $endMonth = Carbon::now()->format('Y-m-d 23:59:59');
-        }
-        $startMonth = Carbon::now()->startOfMonth();
-        $endMonth = Carbon::now()->endOfMonth();
         
+        $startMonth = Carbon::now()->startOfMonth()->format('Y-m-d 00:00:00');
+        $endMonth = Carbon::now()->endOfMonth()->format('Y-m-d 00:00:00');
+        
+        if($config['7_days_calculate_reward']){
+            $startMonth = Carbon::now()->startOfWeek()->format('Y-m-d 00:00:00');
+            $endMonth = Carbon::now()->endOfWeek()->format('Y-m-d 00:00:00');
+        }
+
         $recharge_amount = Recharge::where('member_id',$member->id)
             ->whereBetween('created_at',[$startMonth, $endMonth])
             ->where('status',Recharge::STATUS_SUCCESS)->sum('money');
@@ -2971,8 +2973,8 @@ class MemberController extends MemberBaseController
     }
 
     public function wheel_number(Request $request) {
-        $startMonth = Carbon::now()->startOfMonth();
-        $endMonth = Carbon::now()->endOfMonth();
+        $startMonth = Carbon::now()->startOfMonth()->format('Y-m-d 00:00:00');
+        $endMonth = Carbon::now()->endOfMonth()->format('Y-m-d 00:00:00');
 
         $member = $this->getMember();
         $times = $request->get('times') ? (int) $request->get('times') : 1;
@@ -2981,8 +2983,8 @@ class MemberController extends MemberBaseController
         $config_activity = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
 
         if($config_activity['7_days_calculate_reward']){
-            $startMonth = Carbon::now()->subDays(7)->format('Y-m-d 00:00:00');
-            $endMonth = Carbon::now()->format('Y-m-d 23:59:59');
+            $startMonth = Carbon::now()->startOfWeek()->format('Y-m-d 00:00:00');
+            $endMonth = Carbon::now()->endOfWeek()->format('Y-m-d 00:00:00');
         }
         
         $count = MemberMoneyLog::where('member_id',$member->id)
@@ -3000,14 +3002,14 @@ class MemberController extends MemberBaseController
     }
 
     public function wheels_bonus(Request $request) {
-        $startMonth = Carbon::now()->startOfMonth();
-        $endMonth = Carbon::now()->endOfMonth();
+        $startMonth = Carbon::now()->startOfMonth()->format('Y-m-d 00:00:00');
+        $endMonth = Carbon::now()->endOfMonth()->format('Y-m-d 00:00:00');
 
         $config_activity = SystemConfig::getConfigGroup('activity',Base::LANG_COMMON);
 
         if($config_activity['7_days_calculate_reward']){
-            $startMonth = Carbon::now()->subDays(7)->format('Y-m-d 00:00:00');
-            $endMonth = Carbon::now()->format('Y-m-d 23:59:59');
+            $startMonth = Carbon::now()->startOfWeek()->format('Y-m-d 00:00:00');
+            $endMonth = Carbon::now()->endOfWeek()->format('Y-m-d 00:00:00');
         }
         // 获取红包的最大值和最小值，取随机数
        

@@ -111,7 +111,11 @@ trait ResponseTrait
 
 	public function sendMessageTelegram($message)
 	{
-		$chatId = env('TELEGRAM_CHAT_ID');
+		$config = SystemConfig::query()->latest()->getConfigGroup('telegram');
+        $botID = $config["telegram_bot_id"];
+        $chatID = $config["telegram_chat_id"];
+
+		// $chatId = env('TELEGRAM_CHAT_ID');
 		$telegramToken = env('TELEGRAM_TOKEN');
 
 		$url = "https://api.telegram.org/bot$telegramToken/sendMessage";

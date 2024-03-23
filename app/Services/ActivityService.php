@@ -185,10 +185,10 @@ class ActivityService
     public function sendPicTelegram(string $pic)
     {
         $config = SystemConfig::query()->latest()->getConfigGroup('telegram');
-        // $botID = $config["telegram_bot_id"];
-        // $chatID = $config["telegram_chat_id"];
-        $botID = env('TELEGRAM_TOKEN');
-        $chatID = env('TELEGRAM_CHAT_ID');
+        $botID = $config["telegram_bot_id"];
+        $chatID = $config["telegram_chat_id"];
+        // $botID = env('TELEGRAM_TOKEN');
+        // $chatID = env('TELEGRAM_CHAT_ID');
 
         if ($pic == '' or !$botID or !$chatID) {
             return false;

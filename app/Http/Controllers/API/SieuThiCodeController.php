@@ -126,7 +126,7 @@ class SieuThiCodeController extends Controller
                 foreach ($tranList as $key => $value) {
                     foreach ($recharges as $k => $val) {
                         if($bank == $this->bank_mb){
-                            if( (strpos(data_get($value, 'description'), $val->bill_no) >= 0 || strpos(data_get($value, 'description'),strtoupper($val->bill_no)) >= 0 ) && data_get($value, 'creditAmount') / 1000 == $val->money){
+                            if( (strpos( str_replace(" ","" ,data_get($value, 'description')), $val->bill_no) || strpos( str_replace(" ","" ,data_get($value, 'description')),strtoupper($val->bill_no))) && data_get($value, 'creditAmount') / 1000 == $val->money){
                                 writelog('bill_no : '. $val->bill_no);
                                 $data = [
                                     'account' => data_get($value, 'accountNo'),
@@ -136,7 +136,7 @@ class SieuThiCodeController extends Controller
                             }
                         }
                         if($bank == $this->bank_vt){
-                            if( (strpos(data_get($value, 'remark'), $val->bill_no) >= 0 || strpos(data_get($value, 'remark'),strtoupper($val->bill_no)) >= 0 ) && data_get($value, 'amount') / 1000 == $val->money){
+                            if( (strpos(data_get($value, 'remark'), $val->bill_no) || strpos(data_get($value, 'remark'),strtoupper($val->bill_no)) ) && data_get($value, 'amount') / 1000 == $val->money){
                                 writelog('bill_no : '. $val->bill_no);
                                 $data = [
                                     'account' => data_get($value, 'corresponsiveAccount'),
@@ -145,17 +145,8 @@ class SieuThiCodeController extends Controller
                                 $this->changeMoney($val->bill_no, $val->member_id, $data);
                             }
                         }
-                        if($bank == $this->bank_vc){
-                            if( (strpos(data_get($value, 'Description'), $val->bill_no) >= 0 || strpos(data_get($value, 'Description'),strtoupper($val->bill_no)) >= 0 ) && str_replace(",","" ,data_get($value, 'amount')) / 1000 == $val->money){
-                                writelog('bill_no : '. $val->bill_no);
-                                $data = [
-                                    'credit_amount' => str_replace(",","" ,data_get($value, 'amount')),
-                                ];
-                                $this->changeMoney($val->bill_no, $val->member_id, $data);
-                            }
-                        }
                         if($bank == $this->bank_ac){
-                            if( (strpos(data_get($value, 'description'), $val->bill_no) >= 0 || strpos(data_get($value, 'description'),strtoupper($val->bill_no)) >= 0 ) && data_get($value, 'amount') / 1000 == $val->money){
+                            if( (strpos(data_get($value, 'description'), $val->bill_no) || strpos(data_get($value, 'description'),strtoupper($val->bill_no)) ) && data_get($value, 'amount') / 1000 == $val->money){
                                 writelog('bill_no : '. $val->bill_no);
                                 $data = [
                                     'credit_amount' => data_get($value, 'amount'),
@@ -164,10 +155,19 @@ class SieuThiCodeController extends Controller
                             }
                         }
                         if($bank == $this->bank_bidv){
-                            if( (strpos(data_get($value, 'txnRemark'), $val->bill_no) >= 0 || strpos(data_get($value, 'txnRemark'),strtoupper($val->bill_no)) >= 0 ) && data_get($value, 'amount') / 1000 == $val->money){
+                            if( (strpos(data_get($value, 'txnRemark'), $val->bill_no) || strpos(data_get($value, 'txnRemark'),strtoupper($val->bill_no)) ) && data_get($value, 'amount') / 1000 == $val->money){
                                 writelog('bill_no : '. $val->bill_no);
                                 $data = [
                                     'credit_amount' => data_get($value, 'amount'),
+                                ];
+                                $this->changeMoney($val->bill_no, $val->member_id, $data);
+                            }
+                        }
+                        if($bank == $this->bank_vc){
+                            if( (strpos(data_get($value, 'Description'), $val->bill_no)  || strpos(data_get($value, 'Description'),strtoupper($val->bill_no)) ) && str_replace(",","" ,data_get($value, 'Amount')) / 1000 == $val->money){
+                                writelog('bill_no : '. $val->bill_no);
+                                $data = [
+                                    'credit_amount' => str_replace(",","" ,data_get($value, 'Amount')),
                                 ];
                                 $this->changeMoney($val->bill_no, $val->member_id, $data);
                             }

@@ -243,8 +243,18 @@ class GamesController extends Controller
         ]);
     }
 
-    function publisher() {
-        $publish_id = DB::table('game_lists')->select('publisher_id')->distinct()->pluck('publisher_id')->toArray();
+    function publisher(Request $request) {
+        if(!$request->get('game_type')) return $this->failed('game_type参数不能为空');
+
+        $publish_id = DB::table('game_lists')->select('publisher_id')
+        ->where('is_open', 1)
+        ->when($request->get('is_mobile'),function($query) use ($request){
+            return $query->whereIn('client_type', $request->get('is_mobile' ? [0,2] : [0,1]));
+        })
+        ->when($request->get('game_type'),function($query) use ($request){
+            return $query->where('game_type', $request->get('game_type'));
+        })
+        ->distinct()->pluck('publisher_id')->toArray();
         $result = Publisher::where('is_open', true)->whereIn('id', $publish_id)->langs()->get();
         return $this->success(['data' => $result]);
     }

@@ -149,7 +149,6 @@ class EeziepayController extends Controller
         $params['sign'] = $sign;
 
         $res = app(Client::class)->request('POST', 'https://gogomart168com.com/fundtransfer_enquiry.php', $params);
-        dd($res);
     }
 
     protected function makeTransactionId(): string

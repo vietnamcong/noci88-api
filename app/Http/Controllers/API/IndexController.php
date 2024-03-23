@@ -315,7 +315,9 @@ class IndexController extends MemberBaseController
         if(!$gameType = $request->get('game_type')) return $this->failed('game_type参数不能为空');
 
         $mod = GameList::
-            where('client_type', $request->get('is_mobile'))
+            when($request->get('is_mobile'),function($query) use ($request){
+                return $query->whereIn('client_type', $request->get('is_mobile' ? [0,2] : [0,1]));
+            })
             ->when($request->get('publisher_id'),function($query) use ($request){
                 return $query->where('publisher_id',$request->get('publisher_id'));
             })
