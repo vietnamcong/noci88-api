@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Client;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-
+use App\Services\ActivityService;
 
 class EeziepayController extends Controller
 {
@@ -166,15 +166,12 @@ class EeziepayController extends Controller
     {
         // check history
         $history = app(EeziepayHistory::class)->where('partner_orderid', request()->get('partner_orderid'))->first();
-
         if (empty($history)) {
             logInfo(request()->all());
             return $this->xml();
         }
-        
         // get member info
         $member = app(Member::class)->where('id', $history->member_id)->first();
-        
         DB::beginTransaction();
         try {
 
@@ -195,9 +192,7 @@ class EeziepayController extends Controller
                 . " [Nạp tiền]: " . $member->name
                 . " - Từ: EeziePay - Mã ngân hàng: " . $history->bank_code
                 . " - số tiền: " . $history->receive_amount;
-
             app(ActivityService::class)->sendAlertTelegram($message);
-
             // check success status
             if ($status == EeziepayHistory::STATUS_BANK_SUCCESS) {
                 // update member
