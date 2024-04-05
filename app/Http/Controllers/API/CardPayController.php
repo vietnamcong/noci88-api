@@ -12,11 +12,13 @@ use App\Models\MemberMoneyLog;
 use App\Models\Recharge;
 use App\Models\Payment;
 use Illuminate\Http\Request;
-
+use App\Models\SystemConfig;
 
 class CardPayController extends Controller
 {
     public function confirm(Request $request) {
+        $config = SystemConfig::getConfigGroup('card_pay',Base::LANG_COMMON);
+        
         $params = $request->only(['serial','pin','card_type','card_amount']);
 
         $this->validateRequest($params,[
@@ -26,7 +28,7 @@ class CardPayController extends Controller
             'card_amount' => 'required'
         ]);
 
-        $apiKey  =   getConfig('card_pay.key');
+        $apiKey  =  $config['api_key'];
 
         $content = md5(time() . rand(0, 999999).microtime(true)); // có thể điền thông tin username và các thông tin khác sau đó sử dụng dấu "." để ngăn cách dữ liệu với nhau
         $seri = $params['serial']; // string
@@ -36,14 +38,13 @@ class CardPayController extends Controller
 
         $url = "https://thesieutoc.net/chargingws/v2?APIkey=".$apiKey."&mathe=".$pin."&seri=".$seri."&type=".$loaithe."&menhgia=".$menhgia."&content=".$content;
 
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $url);
-		curl_setopt($ch,CURLOPT_CAINFO, __DIR__ .'/../api/curl-ca-bundle.crt');
-		curl_setopt($ch,CURLOPT_CAPATH, __DIR__ .'/../api/curl-ca-bundle.crt');
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+        curl_close($ch);
 
 		$response = json_decode(curl_exec($ch));
-
         $http_code = 0;
 		if (isset($response->status)){$http_code = 200;}
 		curl_close($ch);
